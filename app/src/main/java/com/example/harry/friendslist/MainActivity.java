@@ -1,6 +1,8 @@
 package com.example.harry.friendslist;
 
 import android.app.ActionBar;
+import android.content.Intent;
+import android.support.design.widget.NavigationView;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
@@ -9,12 +11,14 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
 
 public class MainActivity extends AppCompatActivity {
 
     private String LOG_TAG = this.getClass().getName();
     private DrawerLayout mDrawerLayout;
     private ActionBarDrawerToggle mToggle;
+    private NavigationView nv;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,6 +33,9 @@ public class MainActivity extends AppCompatActivity {
         mToggle.syncState();
 
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+
+        nv = (NavigationView)findViewById(R.id.nav1);
+        navigationItemClicked();
     }
 
     @Override
@@ -40,6 +47,28 @@ public class MainActivity extends AppCompatActivity {
 
         return super.onOptionsItemSelected(item);
     }
+
+    public void navigationItemClicked(){
+
+        nv.setNavigationItemSelectedListener(new NavigationView.OnNavigationItemSelectedListener() {
+            @Override
+            public boolean onNavigationItemSelected(MenuItem menuItem) {
+                switch (menuItem.getItemId()) {
+                    case (R.id.add_friend):
+                        Intent add_friend = new Intent(getApplicationContext(), AddFriend_Activity.class);
+                        startActivity(add_friend);
+                    case (R.id.settings):
+                        Intent settings = new Intent(getApplicationContext(), SettingsActivity.class);
+                        startActivity(settings);
+                    case (R.id.schedule_meeting):
+                        Intent schedule_meetings = new Intent(getApplicationContext(), ScheduleMeetingActivity.class);
+                        startActivity(schedule_meetings);
+                }
+                return true;
+            }
+        });
+    }
+
 
     @Override
     protected void onRestart()
