@@ -1,6 +1,7 @@
 package com.example.harry.friendslist;
 
 import android.Manifest;
+import android.support.v4.app.Fragment;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -13,13 +14,14 @@ import android.support.annotation.RequiresApi;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.ActivityCompat;
 import android.os.Bundle;
+import android.support.v4.app.FragmentTransaction;
+import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.MenuItem;
-import android.view.View;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -32,7 +34,6 @@ import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.text.DateFormat;
 import java.text.ParseException;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
@@ -60,7 +61,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         mDrawerLayout.addDrawerListener(mToggle);
         mToggle.syncState();
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        try{
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        } catch (NullPointerException e){
+
+        }
+
         nv = (NavigationView) findViewById(R.id.nav1);
         nv.bringToFront();
         navigationItemClicked();
@@ -162,20 +168,32 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     public void navigationItemClicked() {
 
+
         nv.setNavigationItemSelectedListener(new NavigationView.OnNavigationItemSelectedListener() {
             @Override
             public boolean onNavigationItemSelected(MenuItem menuItem) {
+
+                Fragment fragment = null;
                 switch (menuItem.getItemId()) {
                     case (R.id.add_friend):
-                        Intent add_friend = new Intent(getApplicationContext(), AddFriend_Activity.class);
-                        startActivity(add_friend);
+                        Log.i(LOG_TAG, "Add friend clicked");
+                        fragment = new addfriend_Fragment();
+                        break;
                     case (R.id.settings):
-                        Intent settings = new Intent(getApplicationContext(), SettingsActivity.class);
-                        startActivity(settings);
+                        fragment = new settings_Fragment();
+                        break;
                     case (R.id.schedule_meeting):
-                        Intent schedule_meetings = new Intent(getApplicationContext(), ScheduleMeetingActivity.class);
-                        startActivity(schedule_meetings);
+                        fragment = new scheduleMeeting_Fragment();
+                        break;
                 }
+
+                if(fragment != null){
+                    FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+                    ft.replace(R.id.nav1, fragment);
+                    ft.commit();
+                }
+                DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawerLayout);
+                drawer.closeDrawer(GravityCompat.START);
                 return true;
             }
         });
