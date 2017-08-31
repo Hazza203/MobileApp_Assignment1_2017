@@ -19,6 +19,7 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.MenuItem;
+import android.view.View;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -52,11 +53,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.map);
-        mapFragment.getMapAsync(this);
-
         // Obtain and draw the navigation bar
 
         mDrawerLayout = (DrawerLayout) findViewById(R.id.drawerLayout);
@@ -64,11 +60,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         mDrawerLayout.addDrawerListener(mToggle);
         mToggle.syncState();
-
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-
         nv = (NavigationView) findViewById(R.id.nav1);
+        nv.bringToFront();
         navigationItemClicked();
+
+        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.map);
+        mapFragment.getMapAsync(this);
 
         // Get Permissions
 
@@ -84,6 +84,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         MY_PERMISSIONS_FINE_LOCATION);
             }
         }
+
+
 
     }
 
