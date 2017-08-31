@@ -175,6 +175,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                 Fragment fragment = null;
                 switch (menuItem.getItemId()) {
+                    case (R.id.home):
+                        for(Fragment frag:getSupportFragmentManager().getFragments()){
+                            Log.i(LOG_TAG, "Removed frag");
+                            if(frag != null){
+                                getSupportFragmentManager().beginTransaction().remove(frag).commit();
+                            }
+                        }
+                        break;
                     case (R.id.add_friend):
                         Log.i(LOG_TAG, "Add friend clicked");
                         fragment = new addfriend_Fragment();
@@ -189,7 +197,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                 if(fragment != null){
                     FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
-                    ft.replace(R.id.nav1, fragment);
+                    ft.replace(R.id.map, fragment);
                     ft.commit();
                 }
                 DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawerLayout);

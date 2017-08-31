@@ -16,13 +16,13 @@ public class settings_Fragment extends Fragment {
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstances){
         super.onViewCreated(view, savedInstances);
-        getActivity().setTitle("Add Friend");
+        getActivity().setTitle("Settings");
     }
 
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState){
 
-        return inflater.inflate(R.layout.addfriend_fragment, container, false);
+        return inflater.inflate(R.layout.settings_fragment, container, false);
     }
 }
