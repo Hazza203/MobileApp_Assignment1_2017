@@ -234,8 +234,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             public void onMapClick(LatLng latLng) {
                 AlertDialog.Builder alert = new AlertDialog.Builder(MainActivity.this);
 
-                alert.setTitle("New Meeting");
-                alert.setMessage("Title");
+                alert.setTitle("Create new Meeting");
+                alert.setMessage("Enter meeting name:");
                 final EditText input = new EditText(MainActivity.this);
                 alert.setView(input);
 
