@@ -22,10 +22,12 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.MenuItem;
+import android.widget.EditText;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.GoogleMap.OnMapClickListener;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.UiSettings;
 import com.google.android.gms.maps.model.CameraPosition;
@@ -75,6 +77,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+
 
         // Get Permissions
 
@@ -210,6 +213,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+        onMapClick();
         UiSettings uiSettings = googleMap.getUiSettings();
         uiSettings.setZoomControlsEnabled(true);
         uiSettings.setCompassEnabled(true);
@@ -222,6 +226,35 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         CameraPosition cameraPosition = new CameraPosition.Builder().target(myLocation).zoom(10).build();
         mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
         setMarkers(mMap);
+    }
+
+    public void onMapClick(){
+        mMap.setOnMapClickListener(new OnMapClickListener() {
+            @Override
+            public void onMapClick(LatLng latLng) {
+                AlertDialog.Builder alert = new AlertDialog.Builder(MainActivity.this);
+
+                alert.setTitle("New Meeting");
+                alert.setMessage("Title");
+                final EditText input = new EditText(MainActivity.this);
+                alert.setView(input);
+
+                alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                        String value = input.getText().toString();
+                        // Do something with value!
+                    }
+                });
+
+                alert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                        // Canceled.
+                    }
+                });
+
+                alert.show();
+            }
+        });
     }
 
     private void setMarkers(GoogleMap googleMap) {
