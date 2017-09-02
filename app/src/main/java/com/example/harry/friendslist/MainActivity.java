@@ -206,8 +206,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     case (R.id.settings):
                         fragment = new settings_Fragment();
                         break;
-                    case (R.id.schedule_meeting):
-                        fragment = new scheduleMeeting_Fragment();
+                    case (R.id.how_to):
+                        fragment = new howTo_Fragment();
                         break;
                 }
 
