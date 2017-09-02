@@ -1,6 +1,7 @@
 package com.example.harry.friendslist;
 
 import android.Manifest;
+import android.support.v4.app.Fragment;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -13,26 +14,33 @@ import android.support.annotation.RequiresApi;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.ActivityCompat;
 import android.os.Bundle;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentTransaction;
+import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutCompat;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.EditText;
+import android.widget.TextView;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.GoogleMap.OnMapClickListener;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.UiSettings;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.text.DateFormat;
 import java.text.ParseException;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
@@ -58,9 +66,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mDrawerLayout = (DrawerLayout) findViewById(R.id.drawerLayout);
         mToggle = new ActionBarDrawerToggle(this, mDrawerLayout, R.string.open, R.string.close);
 
+
         mDrawerLayout.addDrawerListener(mToggle);
         mToggle.syncState();
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        try{
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        } catch (NullPointerException e){
+
+        }
+
         nv = (NavigationView) findViewById(R.id.nav1);
         nv.bringToFront();
         navigationItemClicked();
@@ -69,6 +83,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+
 
         // Get Permissions
 
@@ -162,20 +177,47 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     public void navigationItemClicked() {
 
+
         nv.setNavigationItemSelectedListener(new NavigationView.OnNavigationItemSelectedListener() {
             @Override
             public boolean onNavigationItemSelected(MenuItem menuItem) {
+
+                Fragment fragment = null;
                 switch (menuItem.getItemId()) {
+                    case (R.id.home):
+                        int i = 0;
+                        FragmentManager fm = getSupportFragmentManager();
+                        for(Fragment frag:fm.getFragments()){
+                            if(i == 0){
+                                i++;
+                                continue;
+                            }
+                            if(frag != null) {
+                                Log.i(LOG_TAG, "Removed frag");
+                                getSupportFragmentManager().beginTransaction().remove(frag).commit();
+                            }
+                        }
+                        getSupportActionBar().setTitle("Friends Locations");
+                        break;
                     case (R.id.add_friend):
-                        Intent add_friend = new Intent(getApplicationContext(), AddFriend_Activity.class);
-                        startActivity(add_friend);
+                        Log.i(LOG_TAG, "Add friend clicked");
+                        fragment = new addfriend_Fragment();
+                        break;
                     case (R.id.settings):
-                        Intent settings = new Intent(getApplicationContext(), SettingsActivity.class);
-                        startActivity(settings);
-                    case (R.id.schedule_meeting):
-                        Intent schedule_meetings = new Intent(getApplicationContext(), ScheduleMeetingActivity.class);
-                        startActivity(schedule_meetings);
+                        fragment = new settings_Fragment();
+                        break;
+                    case (R.id.how_to):
+                        fragment = new howTo_Fragment();
+                        break;
                 }
+
+                if(fragment != null){
+                    FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+                    ft.replace(R.id.map, fragment);
+                    ft.commit();
+                }
+                DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawerLayout);
+                drawer.closeDrawer(GravityCompat.START);
                 return true;
             }
         });
@@ -184,6 +226,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+        onMapClick();
         UiSettings uiSettings = googleMap.getUiSettings();
         uiSettings.setZoomControlsEnabled(true);
         uiSettings.setCompassEnabled(true);
@@ -196,6 +239,58 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         CameraPosition cameraPosition = new CameraPosition.Builder().target(myLocation).zoom(10).build();
         mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
         setMarkers(mMap);
+
+        if(mMap != null){
+            mMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter(){
+                @Override
+                public View getInfoWindow(Marker marker){
+                    return null;
+                }
+
+                @Override
+                public View getInfoContents(Marker marker) {
+                    View view = getLayoutInflater().inflate(R.layout.infowindow, null);
+
+                    TextView name = (TextView) view.findViewById(R.id.friend_name);
+                    TextView time = (TextView) view.findViewById(R.id.time);
+
+                    LatLng latLng = marker.getPosition();
+
+                    name.setText("Name: ");
+                    time.setText("Time: ");
+                    return view;
+                }
+            });
+        }
+    }
+
+    public void onMapClick(){
+        mMap.setOnMapClickListener(new OnMapClickListener() {
+            @Override
+            public void onMapClick(LatLng latLng) {
+                AlertDialog.Builder alert = new AlertDialog.Builder(MainActivity.this);
+
+                alert.setTitle("Create new Meeting");
+                alert.setMessage("Enter meeting name:");
+                final EditText input = new EditText(MainActivity.this);
+                alert.setView(input);
+
+                alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                        String value = input.getText().toString();
+                        // Do something with value!
+                    }
+                });
+
+                alert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                        // Canceled.
+                    }
+                });
+
+                alert.show();
+            }
+        });
     }
 
     private void setMarkers(GoogleMap googleMap) {
@@ -224,8 +319,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             e.printStackTrace();
         }
     }
-
-
 
     @Override
     protected void onRestart()
