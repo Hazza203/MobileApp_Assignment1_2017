@@ -1,6 +1,9 @@
 package com.example.harry.friendslist.model;
 
+import android.support.v4.app.Fragment;
+
 import com.example.harry.friendslist.interfaces.FriendInterface;
+import com.google.android.gms.maps.model.LatLng;
 
 import java.util.Date;
 import java.util.LinkedList;
@@ -16,6 +19,7 @@ public class CurrentUser extends Friend implements FriendInterface {
     private String password;
 
     private List<Friend> friends = new LinkedList<>();
+    private List<Meeting> meetings = new LinkedList<>();
 
     public CurrentUser(String id,String userName, String password, String name, String email, Date dob, Double latitude, Double longitude){
         super(id,name,email,dob,latitude,longitude);
@@ -43,11 +47,29 @@ public class CurrentUser extends Friend implements FriendInterface {
         if(!friends.contains(newFriend))
             friends.add(newFriend);
     }
-    public void removeAFriend(Friend removeThisOne){
-        if(friends.contains(removeThisOne))
-            friends.remove(removeThisOne);
+    public void removeAFriend(String id){
+        for(int i = 0; i < friends.size(); i++){
+            if(friends.get(i).getId().equals(id)){
+                friends.remove(i);
+                break;
+            }
+        }
     }
     public List<Friend> getFriendsList(){
         return friends;
+    }
+
+    public void newMeeting(String id, String title, String startTime, String endTime, List<Friend> friends, LatLng latLng){
+        Meeting newMeeting = new Meeting(id, title, startTime, endTime, friends, latLng);
+        meetings.add(newMeeting);
+    }
+
+    public void removeMeeting(String id){
+        for(int i = 0; i < meetings.size(); i++){
+            if(meetings.get(i).getID().equals(id)){
+                meetings.remove(i);
+                break;
+            }
+        }
     }
 }
