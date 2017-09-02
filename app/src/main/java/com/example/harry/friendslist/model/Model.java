@@ -21,5 +21,14 @@ public class Model {
             return model;
         }
     }
-
+    public void setCurrentUserString(String id,String userName, String password, String name, String email, Date dob){
+        // set these
+        Double longitude = Double.NaN;
+        Double latitude = Double.NaN;
+        currentUser = new CurrentUser(id,userName,password,name,email,dob,longitude,latitude);
+    }
+    public List<Double> getCurrentLocation(){
+        // idk how we are getting the this
+        return null;
+    }
 }
