@@ -11,7 +11,7 @@ import java.util.List;
 public class Model {
 
     private Model model;
-    private List<Friend> friends = new LinkedList<>();
+    private CurrentUser currentUser;
 
     public Model createModel(){
         if(model == null){
@@ -22,19 +22,4 @@ public class Model {
         }
     }
 
-    public void addAFriend(String id, String name,String email, Date dob){
-        Friend newFriend = new Friend(id,name,email,dob);
-        if(!friends.contains(newFriend))
-            friends.add(newFriend);
-    }
-    public void removeAFriend(Friend removeThisOne){
-        if(friends.contains(removeThisOne))
-            friends.remove(removeThisOne);
-    }
-    public List<Friend> getFriendsList(){
-        return friends;
-    }
-    public void setDumbyData(){
-
-    }
 }
