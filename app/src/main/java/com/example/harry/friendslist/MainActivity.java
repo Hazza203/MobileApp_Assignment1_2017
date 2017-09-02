@@ -1,6 +1,7 @@
 package com.example.harry.friendslist;
 
 import android.Manifest;
+import android.app.TimePickerDialog;
 import android.support.v4.app.Fragment;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -25,8 +26,12 @@ import android.support.v7.widget.LinearLayoutCompat;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.TimePicker;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -41,6 +46,8 @@ import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.text.DateFormat;
 import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
@@ -60,6 +67,25 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         Log.i(LOG_TAG, "onCreate()");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // Get Permissions
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (!canAccessFineLocation()) {
+                ActivityCompat.requestPermissions(MainActivity.this,
+                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                        MY_PERMISSIONS_READ_CONTACTS);
+            }
+            if (!canReadContacts()) {
+                ActivityCompat.requestPermissions(MainActivity.this,
+                        new String[]{Manifest.permission.READ_CONTACTS},
+                        MY_PERMISSIONS_FINE_LOCATION);
+            }
+        }
+        locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+        if (!isLocationEnabled(locationManager)) {
+            showLocationAlert();
+        }
 
         // Obtain and draw the navigation bar
 
@@ -83,24 +109,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
-
-
-        // Get Permissions
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (!canAccessFineLocation()) {
-                ActivityCompat.requestPermissions(MainActivity.this,
-                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                        MY_PERMISSIONS_READ_CONTACTS);
-            }
-            if (!canReadContacts()) {
-                ActivityCompat.requestPermissions(MainActivity.this,
-                        new String[]{Manifest.permission.READ_CONTACTS},
-                        MY_PERMISSIONS_FINE_LOCATION);
-            }
-        }
-
-
 
     }
 
@@ -126,13 +134,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 return;
             }
             case MY_PERMISSIONS_FINE_LOCATION: {
+                Log.i(LOG_TAG, "Granting permision");
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
-
-                    if (!isLocationEnabled(locationManager)) {
-                        showLocationAlert();
-                    } else {
-                    }
 
                 } else {
 
@@ -144,7 +147,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     public boolean isLocationEnabled(LocationManager locationManager) {
 
-        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
     }
 
     private void showLocationAlert(){
@@ -249,15 +252,24 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                 @Override
                 public View getInfoContents(Marker marker) {
+                    final String friend = null;
                     View view = getLayoutInflater().inflate(R.layout.infowindow, null);
 
-                    TextView name = (TextView) view.findViewById(R.id.friend_name);
-                    TextView time = (TextView) view.findViewById(R.id.time);
+                    TextView name = view.findViewById(R.id.friend_name);
+                    TextView time = view.findViewById(R.id.time);
+                    final Button makeMeeting = view.findViewById(R.id.makeMeeting);
+                    final LatLng latLng = marker.getPosition();
 
-                    LatLng latLng = marker.getPosition();
+                    name.setText(R.string.name);
+                    time.setText(R.string.updateTime);
+                    makeMeeting.setText(R.string.meeting);
 
-                    name.setText("Name: ");
-                    time.setText("Time: ");
+                    makeMeeting.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v){
+                            makeMeeting(latLng, friend);
+                        }
+                    });
                     return view;
                 }
             });
@@ -268,27 +280,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mMap.setOnMapClickListener(new OnMapClickListener() {
             @Override
             public void onMapClick(LatLng latLng) {
-                AlertDialog.Builder alert = new AlertDialog.Builder(MainActivity.this);
-
-                alert.setTitle("Create new Meeting");
-                alert.setMessage("Enter meeting name:");
-                final EditText input = new EditText(MainActivity.this);
-                alert.setView(input);
-
-                alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int whichButton) {
-                        String value = input.getText().toString();
-                        // Do something with value!
-                    }
-                });
-
-                alert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int whichButton) {
-                        // Canceled.
-                    }
-                });
-
-                alert.show();
+                makeMeeting(latLng, null);
             }
         });
     }
@@ -318,6 +310,142 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         } catch (ParseException e) {
             e.printStackTrace();
         }
+    }
+
+    private void makeMeeting(LatLng latLng, String name){
+        boolean addMore = true;
+        int startHour =24, startMin = 24;
+
+        AlertDialog.Builder alert = new AlertDialog.Builder(MainActivity.this);
+
+        LinearLayout layout = new LinearLayout(MainActivity.this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+
+        alert.setTitle("Create new meeting");
+
+        final EditText title = new EditText(MainActivity.this);
+        title.setHint("Title");
+        layout.addView(title);
+
+        final EditText startTime = new EditText(MainActivity.this);
+        startTime.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                // TODO Auto-generated method stub
+                Calendar mcurrentTime = Calendar.getInstance();
+                int hour = mcurrentTime.get(Calendar.HOUR_OF_DAY);
+                int minute = mcurrentTime.get(Calendar.MINUTE);
+                TimePickerDialog mTimePicker;
+                mTimePicker = new TimePickerDialog(MainActivity.this, new TimePickerDialog.OnTimeSetListener() {
+                    @Override
+                    public void onTimeSet(TimePicker timePicker, int selectedHour, int selectedMinute) {
+                        startTime.setText( selectedHour + ":" + selectedMinute);
+                    }
+                }, hour, minute, true);//Yes 24 hour time
+                mTimePicker.setTitle("Select Time");
+                mTimePicker.show();
+            }
+        });
+        startTime.setHint("Start Time");
+        startTime.setKeyListener(null);
+        layout.addView(startTime);
+
+        final EditText endTime = new EditText(MainActivity.this);
+        endTime.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                // TODO Auto-generated method stub
+                Calendar mcurrentTime = Calendar.getInstance();
+                int hour = mcurrentTime.get(Calendar.HOUR_OF_DAY);
+                final int minute = mcurrentTime.get(Calendar.MINUTE);
+                TimePickerDialog mTimePicker;
+                mTimePicker = new TimePickerDialog(MainActivity.this, new TimePickerDialog.OnTimeSetListener() {
+                    @Override
+                    public void onTimeSet(TimePicker timePicker, int selectedHour, int selectedMinute) {
+                        String sTime = startTime.getText().toString();
+                        String time[] = sTime.split(":");
+
+                        int hour = Integer.parseInt(time[0]);
+                        int min = Integer.parseInt(time[1]);
+
+                        if(hour == selectedHour){
+                            if(selectedMinute > min){
+                                endTime.setText( selectedHour + ":" + selectedMinute);
+                            }
+                        }else if(selectedHour > hour){
+                            endTime.setText( selectedHour + ":" + selectedMinute);
+                        }
+                    }
+                }, hour, minute, true);//Yes 24 hour time
+                mTimePicker.setTitle("Select Time");
+                mTimePicker.show();
+
+            }
+        });
+        endTime.setHint("End Time");
+        endTime.setKeyListener(null);
+        layout.addView(endTime);
+
+        alert.setView(layout);
+
+        alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+                String mName = title.getText().toString();
+                String sTime = startTime.getText().toString();
+                String eTime = endTime.getText().toString();
+                if(mName.equals("")|| sTime.equals("") || eTime.equals("")){
+                    return;
+                }
+                AlertDialog.Builder alert = new AlertDialog.Builder(MainActivity.this);
+
+                final ArrayList selectedItems = new ArrayList();
+                final CharSequence[] friends = {"Place","Holders"};
+                alert.setTitle("Select Friends");
+                alert.setMultiChoiceItems(friends, null,
+                        new DialogInterface.OnMultiChoiceClickListener() {
+                            // indexSelected contains the index of item (of which checkbox checked)
+                            @Override
+                            public void onClick(DialogInterface dialog, int indexSelected, boolean isChecked) {
+                                if (isChecked) {
+                                    // If the user checked the item, add it to the selected items
+                                    // write your code when user checked the checkbox
+                                    selectedItems.add(indexSelected);
+                                } else if (selectedItems.contains(indexSelected)) {
+                                    // Else, if the item is already in the array, remove it
+                                    // write your code when user Uchecked the checkbox
+                                    selectedItems.remove(Integer.valueOf(indexSelected));
+                                }
+                            }
+                        });
+                alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int whichButton) {
+
+                        // Do something with value!
+                    }
+                });
+
+                alert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                        // Canceled.
+                    }
+                });
+
+                alert.show();
+
+                // Do something with value!
+            }
+        });
+
+        alert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+                // Canceled.
+            }
+        });
+
+        alert.show();
+
     }
 
     @Override

@@ -68,9 +68,6 @@ public class DummyLocationService
       targetCalEnd.set(Calendar.MINUTE, targetCalEnd.get(Calendar.MINUTE) + periodMinutes);
       targetCalEnd.set(Calendar.SECOND, targetCalEnd.get(Calendar.SECOND) + periodMinutes);
 
-      Log.i(LOG_TAG, String.valueOf(targetCalEnd));
-      Log.i(LOG_TAG, String.valueOf(targetCalStart));
-       Log.i(LOG_TAG, String.valueOf(sourceCal));
 
       // return if source time in the target range
       return sourceCal.after(targetCalStart) && sourceCal.before(targetCalEnd);

@@ -10,4 +10,7 @@
     <string name="title_activity_main">Friends Locations</string>
     <string name="friend_name">Name</string>
     <string name="time">Last Updated</string>
+    <string name="name">Name: </string>
+    <string name="meeting">Make Meeting </string>
+    <string name="updateTime">Time: </string>
 </resources>
