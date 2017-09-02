@@ -14,15 +14,19 @@ import android.support.annotation.RequiresApi;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.ActivityCompat;
 import android.os.Bundle;
+import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutCompat;
 import android.util.Log;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.EditText;
+import android.widget.TextView;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -32,6 +36,7 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.UiSettings;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.text.DateFormat;
@@ -60,6 +65,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         mDrawerLayout = (DrawerLayout) findViewById(R.id.drawerLayout);
         mToggle = new ActionBarDrawerToggle(this, mDrawerLayout, R.string.open, R.string.close);
+
 
         mDrawerLayout.addDrawerListener(mToggle);
         mToggle.syncState();
@@ -179,12 +185,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 Fragment fragment = null;
                 switch (menuItem.getItemId()) {
                     case (R.id.home):
-                        for(Fragment frag:getSupportFragmentManager().getFragments()){
-                            Log.i(LOG_TAG, "Removed frag");
-                            if(frag != null){
+                        int i = 0;
+                        FragmentManager fm = getSupportFragmentManager();
+                        for(Fragment frag:fm.getFragments()){
+                            if(i == 0){
+                                i++;
+                                continue;
+                            }
+                            if(frag != null) {
+                                Log.i(LOG_TAG, "Removed frag");
                                 getSupportFragmentManager().beginTransaction().remove(frag).commit();
                             }
                         }
+                        getSupportActionBar().setTitle("Friends Locations");
                         break;
                     case (R.id.add_friend):
                         Log.i(LOG_TAG, "Add friend clicked");
@@ -226,6 +239,29 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         CameraPosition cameraPosition = new CameraPosition.Builder().target(myLocation).zoom(10).build();
         mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
         setMarkers(mMap);
+
+        if(mMap != null){
+            mMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter(){
+                @Override
+                public View getInfoWindow(Marker marker){
+                    return null;
+                }
+
+                @Override
+                public View getInfoContents(Marker marker) {
+                    View view = getLayoutInflater().inflate(R.layout.infowindow, null);
+
+                    TextView name = (TextView) view.findViewById(R.id.friend_name);
+                    TextView time = (TextView) view.findViewById(R.id.time);
+
+                    LatLng latLng = marker.getPosition();
+
+                    name.setText("Name: ");
+                    time.setText("Time: ");
+                    return view;
+                }
+            });
+        }
     }
 
     public void onMapClick(){
@@ -283,8 +319,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             e.printStackTrace();
         }
     }
-
-
 
     @Override
     protected void onRestart()
