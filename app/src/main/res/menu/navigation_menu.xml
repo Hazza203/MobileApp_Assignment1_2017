@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <item android:id="@+id/add_friend" android:icon="@mipmap/ic_person_add_black_24dp" android:title="Add Friend"/>
-    <item android:id="@+id/schedule_meeting"  android:icon="@mipmap/ic_schedule_black_24dp" android:title="Schedule Meeting"/>
-    <item android:id="@+id/settings" android:icon="@mipmap/ic_settings_black_24dp" android:title="Settings"/>
-    <item android:id="@+id/logout" android:icon="@drawable/logout" android:title="Log out"/>
+    <item android:id="@+id/home" android:icon="@mipmap/ic_home_black_24dp" android:title="@string/home"/>
+    <item android:id="@+id/add_friend" android:icon="@mipmap/ic_person_add_black_24dp" android:title="@string/add_friend" />
+    <item android:id="@+id/schedule_meeting" android:icon="@mipmap/ic_schedule_black_24dp" android:title="@string/schedule_meeting" />
+    <item android:id="@+id/settings" android:icon="@mipmap/ic_settings_black_24dp" android:title="@string/settings"/>
+
 
 </menu>
