@@ -16,6 +16,7 @@ public abstract class FriendsAbstract implements FriendInterface{
     Date dob;
     double latitude;
     double longitude;
+    Date time;
 
 
     public String getId() {
@@ -54,4 +55,6 @@ public abstract class FriendsAbstract implements FriendInterface{
     public void setLatitude(Double latitude){
         this.latitude = latitude;
     }
+    public Date getTime() { return time; }
+    public void setTime(Date time) { this.time = time; }
 }

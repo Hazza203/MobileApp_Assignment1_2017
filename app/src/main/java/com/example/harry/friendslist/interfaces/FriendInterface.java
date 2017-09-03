@@ -26,4 +26,8 @@ public interface FriendInterface {
     Double getLatitude();
     void setLatitude(Double latitude);
 
+    Date getTime();
+
+    void setTime(Date time);
+
 }
