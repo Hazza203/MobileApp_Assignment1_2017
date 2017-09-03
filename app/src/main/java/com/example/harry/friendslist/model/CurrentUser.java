@@ -2,17 +2,15 @@ package com.example.harry.friendslist.model;
 
 import android.content.Context;
 import android.content.res.Resources;
-import android.support.v4.app.Fragment;
 import android.util.Log;
 
-import com.example.harry.friendslist.DummyLocationService;
-import com.example.harry.friendslist.MainActivity;
 import com.example.harry.friendslist.R;
 import com.example.harry.friendslist.interfaces.FriendInterface;
 import com.google.android.gms.maps.model.LatLng;
 
 import java.text.DateFormat;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -31,8 +29,8 @@ public class CurrentUser extends Friend implements FriendInterface {
     private List<Friend> friends = new LinkedList<>();
     private List<Meeting> meetings = new LinkedList<>();
 
-    public CurrentUser(String id,String userName, String password, String name, String email, Date dob, Double latitude, Double longitude, Context context){
-        super(id,name,email,dob,latitude,longitude);
+    public CurrentUser(String id,String userName, String password, String name, String email, Date dob, Double latitude, Double longitude, Date time, Context context){
+        super(id,name,email,dob,latitude,longitude, time);
         this.userName = userName;
         this.password = password;
         loadData(context);
@@ -89,11 +87,11 @@ public class CurrentUser extends Friend implements FriendInterface {
         //Need to replace dummy_data.txt with actual friend and meeting files
         String fID, fName, fEmail, mID, mTitle, mStartTime, mEndTime, mFriendID;
         int noFriends;
-        Date fDOB;
+        Date fDOB, time;
         Double lat, lng, fLat, fLng;
         LatLng mLatLng;
         List<Friend> mFriends = new LinkedList<>();
-        try (Scanner scanner = new Scanner(context.getResources().openRawResource(R.raw.dummy_data)))
+        try (Scanner scanner = new Scanner(context.getResources().openRawResource(R.raw.friend_file)))
         {
             // match comma and 0 or more whitepace (to catch newlines)
             scanner.useDelimiter(",\\s*");
@@ -102,10 +100,12 @@ public class CurrentUser extends Friend implements FriendInterface {
                 fID = scanner.next();
                 fName = scanner.next();
                 fEmail = scanner.next();
-                fDOB = DateFormat.getDateInstance(DateFormat.MEDIUM).parse(scanner.next());
+                DateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
+                fDOB = dateFormat.parse(scanner.next());
                 fLat = Double.parseDouble(scanner.next());
                 fLng = Double.parseDouble(scanner.next());
-                Friend friend = new Friend(fID, fName, fEmail, fDOB, fLat, fLng);
+                time = DateFormat.getTimeInstance(DateFormat.MEDIUM).parse(scanner.next());
+                Friend friend = new Friend(fID, fName, fEmail, fDOB, fLat, fLng, time);
                 friends.add(friend);
             }
         } catch (Resources.NotFoundException e)
@@ -116,7 +116,7 @@ public class CurrentUser extends Friend implements FriendInterface {
             Log.i(LOG_TAG, "ParseException Caught (Incorrect File Format)");
         }
 
-        try (Scanner scanner = new Scanner(context.getResources().openRawResource(R.raw.dummy_data)))
+        try (Scanner scanner = new Scanner(context.getResources().openRawResource(R.raw.meetings_file)))
         {
             // match comma and 0 or more whitepace (to catch newlines)
             scanner.useDelimiter(",\\s*");

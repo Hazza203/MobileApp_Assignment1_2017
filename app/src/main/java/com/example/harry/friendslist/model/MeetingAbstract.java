@@ -9,7 +9,7 @@ import java.util.List;
  * Created by harry on 3/09/2017.
  */
 
-public  class MeetingAbstract implements MeetingInterface{
+public  abstract class MeetingAbstract implements MeetingInterface{
 
     String id;
     String title;

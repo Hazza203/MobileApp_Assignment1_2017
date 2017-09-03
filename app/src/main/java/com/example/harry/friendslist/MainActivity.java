@@ -2,6 +2,8 @@ package com.example.harry.friendslist;
 
 import android.Manifest;
 import android.app.TimePickerDialog;
+import android.location.Location;
+import android.location.LocationListener;
 import android.support.v4.app.Fragment;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -33,6 +35,9 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.TimePicker;
 
+import com.example.harry.friendslist.model.CurrentUser;
+import com.example.harry.friendslist.model.Friend;
+import com.example.harry.friendslist.model.Model;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -46,10 +51,13 @@ import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.text.DateFormat;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+
+import static java.util.Calendar.AM;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
 
@@ -59,17 +67,32 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private ActionBarDrawerToggle mToggle;
     private NavigationView nv;
     private LocationManager locationManager;
+    private LocationListener locationListener;
     private final int MY_PERMISSIONS_READ_CONTACTS = 1;
     private final int MY_PERMISSIONS_FINE_LOCATION = 2;
+    private List<Friend> friendsList;
 
+    private Model model;
+    private CurrentUser user;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.i(LOG_TAG, "onCreate()");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        model = new Model();
+
+        //Login dummy user
+        try {
+            Date time = DateFormat.getTimeInstance(DateFormat.MEDIUM).parse("12:00:00 PM");
+            DateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
+            Date dob = dateFormat.parse("01/01/1970");
+            model.setCurrentUserString("1", "userName", "Pass1234", "Test User", "test@test", dob, time, MainActivity.this);
+            user = model.getCurrentUser();
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
 
         // Get Permissions
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (!canAccessFineLocation()) {
                 ActivityCompat.requestPermissions(MainActivity.this,
@@ -82,9 +105,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         MY_PERMISSIONS_FINE_LOCATION);
             }
         }
+
+        //Check location services are turned on
         locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         if (!isLocationEnabled(locationManager)) {
             showLocationAlert();
+        } else {
+            locationUpdater();
         }
 
         // Obtain and draw the navigation bar
@@ -113,12 +140,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     @RequiresApi(api = Build.VERSION_CODES.M)
-    private boolean canAccessFineLocation() {
+    public boolean canAccessFineLocation() {
         return (PackageManager.PERMISSION_GRANTED == checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION));
     }
 
     @RequiresApi(api = Build.VERSION_CODES.M)
-    private boolean canReadContacts() {
+    public boolean canReadContacts() {
         return (PackageManager.PERMISSION_GRANTED == checkSelfPermission(Manifest.permission.READ_CONTACTS));
     }
 
@@ -148,6 +175,41 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public boolean isLocationEnabled(LocationManager locationManager) {
 
         return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+    }
+
+    private void locationUpdater(){
+        PackageManager pm = this.getPackageManager();
+        int hasPerm = pm.checkPermission(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                this.getPackageName());
+        Log.i(LOG_TAG, "Perms" + hasPerm + " " + PackageManager.PERMISSION_GRANTED);
+        if (hasPerm == PackageManager.PERMISSION_GRANTED) {
+            locationListener = new LocationListener() {@Override
+            public void onLocationChanged(Location location) {
+                user.setLatitude(location.getLatitude());
+                user.setLongitude(location.getLongitude());
+                Log.i(LOG_TAG, "Location changed");
+            }
+
+                @Override
+                public void onStatusChanged(String provider, int status, Bundle extras) {
+
+                }
+
+                @Override
+                public void onProviderEnabled(String provider) {
+
+                }
+
+                @Override
+                public void onProviderDisabled(String provider) {
+                    startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+
+                }
+            };
+        }
+
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
     }
 
     private void showLocationAlert(){
@@ -238,7 +300,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             return;
         }
-        mMap.setMyLocationEnabled(true);
+
         CameraPosition cameraPosition = new CameraPosition.Builder().target(myLocation).zoom(10).build();
         mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
         setMarkers(mMap);
@@ -252,24 +314,30 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                 @Override
                 public View getInfoContents(Marker marker) {
-                    final String friend = null;
+                    String friendStr = null;
+                    Date time = null;
                     View view = getLayoutInflater().inflate(R.layout.infowindow, null);
 
-                    TextView name = view.findViewById(R.id.friend_name);
-                    TextView time = view.findViewById(R.id.time);
+                    TextView tvName = view.findViewById(R.id.friend_name);
+                    TextView tvTime = view.findViewById(R.id.time);
                     final Button makeMeeting = view.findViewById(R.id.makeMeeting);
                     final LatLng latLng = marker.getPosition();
 
-                    name.setText(R.string.name);
-                    time.setText(R.string.updateTime);
-                    makeMeeting.setText(R.string.meeting);
+                    double lat = latLng.latitude;
+                    double lng = latLng.longitude;
 
-                    makeMeeting.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v){
-                            makeMeeting(latLng, friend);
+                    friendsList = user.getFriendsList();
+
+                    for(int i = 0; i < friendsList.size(); i++){
+                        Friend friend = friendsList.get(i);
+                        if(friend.getLatitude() == lat && friend.getLongitude() == lng){
+                            friendStr = friend.getName();
+                            time = friend.getTime();
                         }
-                    });
+                    }
+                    DateFormat dateFormat = new SimpleDateFormat("HH:mm:ss aa");
+                    tvName.setText("Name: " + friendStr);
+                    tvTime.setText("Time: " + dateFormat.format(time));
                     return view;
                 }
             });
@@ -291,25 +359,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         double lat, lng;
 
         mMap = googleMap;
-        DummyLocationService dummyLocationService = DummyLocationService.getSingletonInstance(MainActivity.this);
-        try {
-            Date time = DateFormat.getTimeInstance(DateFormat.MEDIUM).parse("12:00:00 PM");
-            List<DummyLocationService.FriendLocation> friendLocations = dummyLocationService.getFriendLocationsForTime(time, 719, 0);
-            dummyLocationService.logAll();
-            size = friendLocations.size();
+        friendsList = user.getFriendsList();
 
-            Log.i(LOG_TAG, "Size: " + size);
+        size = friendsList.size();
+        Log.i(LOG_TAG, "Size: " + size);
 
-            while (count < size) {
-                DummyLocationService.FriendLocation friendLocation = friendLocations.get(count);
-                lat = friendLocation.latitude;
-                lng = friendLocation.longitude;
-                mMap.addMarker(new MarkerOptions().position(new LatLng(lat, lng)));
-                count++;
-            }
-        } catch (ParseException e) {
-            e.printStackTrace();
+        while (count < size) {
+            Friend friend = friendsList.get(count);
+            lat = friend.getLatitude();
+            lng = friend.getLongitude();
+            mMap.addMarker(new MarkerOptions().position(new LatLng(lat, lng)));
+            count++;
         }
+
     }
 
     private void makeMeeting(LatLng latLng, String name){
