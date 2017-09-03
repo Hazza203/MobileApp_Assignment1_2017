@@ -45,12 +45,14 @@ public class ViewMeetings_Fragment extends Fragment {
         getActivity().setTitle("View Meetings");
     }
 
+    //Create the listview
     @Override
     public View onCreateView(final LayoutInflater inflater, @Nullable final ViewGroup container, @Nullable final Bundle savedInstanceState){
 
         View view = inflater.inflate(R.layout.viewmeetings_fragment, container, false);
         final ListView meetingLV = view.findViewById(R.id.meetingLV);
 
+        //Get the model and current user
         try {
             model = Model.getInstance();
             Date time = DateFormat.getTimeInstance(DateFormat.MEDIUM).parse("12:00:00 PM");
@@ -60,6 +62,7 @@ public class ViewMeetings_Fragment extends Fragment {
         } catch (ParseException e) {
             e.printStackTrace();
         }
+
         final List<Meeting> meetings = user.getMeetingList();
 
         final ArrayList<String> meetingItems = new ArrayList<>();
@@ -69,7 +72,7 @@ public class ViewMeetings_Fragment extends Fragment {
             meetingItems.add(meeting.getTitle());
         }
 
-
+        //Load the meeting titles into the listview
         final ArrayAdapter<String> listViewAdapter = new ArrayAdapter<String>(
                 getActivity(),
                 android.R.layout.simple_list_item_1,
@@ -78,6 +81,7 @@ public class ViewMeetings_Fragment extends Fragment {
 
         meetingLV.setAdapter(listViewAdapter);
 
+        //Wait for listview item clicked, display alert box with meeting info which is editable
         meetingLV.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> a, View v, int position, long id) {
@@ -101,6 +105,7 @@ public class ViewMeetings_Fragment extends Fragment {
                 startTime.setText(df.format(meeting.getStartTime()));
                 startTime.setOnClickListener(new View.OnClickListener() {
 
+                    //Click to go to next
                     @Override
                     public void onClick(View v) {
                         // TODO Auto-generated method stub
