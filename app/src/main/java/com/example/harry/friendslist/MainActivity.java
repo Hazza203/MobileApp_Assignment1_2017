@@ -310,8 +310,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         break;
                     case (R.id.add_friend):
                         isMainShown = false;
-                        Log.i(LOG_TAG, "Add friend clicked");
                         fragment = new addfriend_Fragment();
+                        break;
+                    case (R.id.view_friends):
+                        isMainShown = false;
+                        fragment = new listFriends();
                         break;
                     case (R.id.view_meetings):
                         isMainShown = false;
