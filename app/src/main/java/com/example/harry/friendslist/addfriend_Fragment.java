@@ -99,14 +99,15 @@ public class addfriend_Fragment extends Fragment implements LoaderManager.Loader
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
         mContactsList =
-                (ListView) getActivity().findViewById(R.layout.addfriend_fragment);
+                (ListView) getActivity().findViewById(R.id.list);
 
         mCursorAdapter = new SimpleCursorAdapter(
                 getActivity(),
-                R.layout.addfriend_item,
+                R.id.theList,
                 null,
                 FROM_COLUMNS, TO_IDS,
                 0);
+
         getLoaderManager().initLoader(0, null, this);
         mContactsList.setAdapter(mCursorAdapter);
         mContactsList.setOnItemClickListener(this);
