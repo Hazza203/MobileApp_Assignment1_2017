@@ -1,20 +1,10 @@
 package com.example.harry.friendslist.model;
 
-import android.Manifest;
+
 import android.content.Context;
-import android.content.pm.PackageManager;
-import android.location.LocationManager;
-import android.util.Log;
 
-import com.example.harry.friendslist.MainActivity;
-
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
 
-import static android.content.Context.LOCATION_SERVICE;
 
 /**
  * Created by Jay on 1/09/2017.
