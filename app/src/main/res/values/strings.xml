@@ -8,9 +8,10 @@
         would like the meeting to take place and enter the meeting information.\n\nEdit Meeting:\nTo edit a meeting
         select the view meetings item in the side navigation and tap which meeting you would like to edit\n\nDelete a meeting:\nTo
         delete a meeting make a long tap on the meeting you wish to delete in the view meetings page and click to confirm\n\nView
-        friends location:\nOn the home page simply tap on one of the markers to view their name and when they last updated their location\n\nManaging
-        friends:\nAdding and removing friends can be done in the Add friend page.</string>
+        friends location:\nOn the home page simply tap on one of the markers to view their name and when they last updated their location\n\nAdding Friends:\nTo add a friend from
+        your contacts move to the add friend page and select a contact to add.\nView Friends:\nTo view your friends list move to the view friends page, here you can also delete a friend.</string>
     <string name="view_meetings">View and Manage Meetings</string>
+    <string name="view_friends">View Friends</string>
     <string name="howTo">How To</string>
     <string name="home">Home</string>
     <string name="title_activity_main">Friends Locations</string>
