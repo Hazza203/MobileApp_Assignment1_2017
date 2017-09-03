@@ -8,6 +8,7 @@ import com.example.harry.friendslist.R;
 import com.example.harry.friendslist.interfaces.FriendInterface;
 import com.google.android.gms.maps.model.LatLng;
 
+import java.io.File;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -25,6 +26,7 @@ public class CurrentUser extends Friend implements FriendInterface {
     private String userName;
     private String password;
     private String LOG_TAG = this.getClass().getName();
+    private int meetingID = 1;
 
     private List<Friend> friends = new LinkedList<>();
     private List<Meeting> meetings = new LinkedList<>();
@@ -67,10 +69,12 @@ public class CurrentUser extends Friend implements FriendInterface {
     public List<Friend> getFriendsList(){
         return friends;
     }
+    public List<Meeting> getMeetingList() { return meetings; }
 
-    public void newMeeting(String id, String title, String startTime, String endTime, List<Friend> friends, LatLng latLng){
-        Meeting newMeeting = new Meeting(id, title, startTime, endTime, friends, latLng);
+    public void newMeeting(String title, String startTime, String endTime, List<Friend> friends, LatLng latLng){
+        Meeting newMeeting = new Meeting(Integer.toString(meetingID), title, startTime, endTime, friends, latLng);
         meetings.add(newMeeting);
+        meetingID++;
     }
 
     public void removeMeeting(String id){
@@ -85,7 +89,7 @@ public class CurrentUser extends Friend implements FriendInterface {
     private void loadData(Context context){
 
         //Need to replace dummy_data.txt with actual friend and meeting files
-        String fID, fName, fEmail, mID, mTitle, mStartTime, mEndTime, mFriendID;
+        String fID, fName, fEmail, mTitle, mStartTime, mEndTime, mFriendID;
         int noFriends;
         Date fDOB, time;
         Double lat, lng, fLat, fLng;
@@ -122,7 +126,6 @@ public class CurrentUser extends Friend implements FriendInterface {
             scanner.useDelimiter(",\\s*");
             while (scanner.hasNext())
             {
-                mID = scanner.next();
                 mTitle = scanner.next();
                 mStartTime = scanner.next();
                 mEndTime = scanner.next();
@@ -138,7 +141,8 @@ public class CurrentUser extends Friend implements FriendInterface {
                 lat = Double.parseDouble(scanner.next());
                 lng = Double.parseDouble(scanner.next());
                 mLatLng = new LatLng(lat, lng);
-                Meeting meeting = new Meeting(mID, mTitle, mStartTime, mEndTime, mFriends, mLatLng);
+                Meeting meeting = new Meeting(Integer.toString(meetingID), mTitle, mStartTime, mEndTime, mFriends, mLatLng);
+                meetingID++;
                 meetings.add(meeting);
             }
         } catch (Resources.NotFoundException e)

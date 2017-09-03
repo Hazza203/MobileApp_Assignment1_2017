@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.LocationManager;
+import android.util.Log;
 
 import com.example.harry.friendslist.MainActivity;
 
@@ -22,14 +23,17 @@ import static android.content.Context.LOCATION_SERVICE;
 public class Model {
 
     private Model model;
+    private String LOG_TAG = this.getClass().getName();
     private CurrentUser currentUser;
     private Context context;
 
     public Model createModel(){
         if(model == null){
+            Log.i(LOG_TAG, "MODEL IS NULLLL");
             model = new Model();
             return model;
         }else{
+            Log.i(LOG_TAG, "MODEL IS not NULLLL");
             return model;
         }
     }

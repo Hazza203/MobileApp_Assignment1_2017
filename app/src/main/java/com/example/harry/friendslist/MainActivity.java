@@ -24,7 +24,6 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.LinearLayoutCompat;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
@@ -37,6 +36,7 @@ import android.widget.TimePicker;
 
 import com.example.harry.friendslist.model.CurrentUser;
 import com.example.harry.friendslist.model.Friend;
+import com.example.harry.friendslist.model.Meeting;
 import com.example.harry.friendslist.model.Model;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -55,6 +55,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 
 import static java.util.Calendar.AM;
@@ -267,8 +268,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         Log.i(LOG_TAG, "Add friend clicked");
                         fragment = new addfriend_Fragment();
                         break;
-                    case (R.id.settings):
-                        fragment = new settings_Fragment();
+                    case (R.id.view_meetings):
+                        fragment = new ViewMeetings_Fragment();
                         break;
                     case (R.id.how_to):
                         fragment = new howTo_Fragment();
@@ -373,9 +374,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
 
-    private void makeMeeting(LatLng latLng, String name){
+    private void makeMeeting(final LatLng latLng, String name){
         boolean addMore = true;
-        int startHour =24, startMin = 24;
+        final int startHour =24, startMin = 24;
 
         AlertDialog.Builder alert = new AlertDialog.Builder(MainActivity.this);
 
@@ -453,16 +454,22 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int whichButton) {
-                String mName = title.getText().toString();
-                String sTime = startTime.getText().toString();
-                String eTime = endTime.getText().toString();
+                final String mName = title.getText().toString();
+                final String sTime = startTime.getText().toString();
+                final String eTime = endTime.getText().toString();
                 if(mName.equals("")|| sTime.equals("") || eTime.equals("")){
                     return;
                 }
                 AlertDialog.Builder alert = new AlertDialog.Builder(MainActivity.this);
 
-                final ArrayList selectedItems = new ArrayList();
-                final CharSequence[] friends = {"Place","Holders"};
+
+                final List<Friend> friendList = user.getFriendsList();
+                final ArrayList<Integer> selectedItems = new ArrayList();
+                final CharSequence[] friends = new CharSequence[friendList.size()];
+                for(int i = 0; i < friendList.size(); i++){
+                    Friend friend = friendList.get(i);
+                    friends[i] = friend.getName();
+                }
                 alert.setTitle("Select Friends");
                 alert.setMultiChoiceItems(friends, null,
                         new DialogInterface.OnMultiChoiceClickListener() {
@@ -482,8 +489,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         });
                 alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int whichButton) {
-
-                        // Do something with value!
+                        List<Friend> meetingFriends = new LinkedList();
+                        for(int i = 0; i < selectedItems.size(); i++){
+                            meetingFriends.add(friendList.get(selectedItems.get(i)));
+                        }
+                        user.newMeeting(mName, sTime, eTime, meetingFriends, latLng);
                     }
                 });
 
