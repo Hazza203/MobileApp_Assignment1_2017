@@ -119,7 +119,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mDrawerLayout = (DrawerLayout) findViewById(R.id.drawerLayout);
         mToggle = new ActionBarDrawerToggle(this, mDrawerLayout, R.string.open, R.string.close);
 
-
         mDrawerLayout.addDrawerListener(mToggle);
         mToggle.syncState();
         try{
@@ -304,6 +303,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         CameraPosition cameraPosition = new CameraPosition.Builder().target(myLocation).zoom(10).build();
         mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
         setMarkers(mMap);
+        mMap.setMyLocationEnabled(true);
 
         if(mMap != null){
             mMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter(){
@@ -320,7 +320,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                     TextView tvName = view.findViewById(R.id.friend_name);
                     TextView tvTime = view.findViewById(R.id.time);
-                    final Button makeMeeting = view.findViewById(R.id.makeMeeting);
                     final LatLng latLng = marker.getPosition();
 
                     double lat = latLng.latitude;
