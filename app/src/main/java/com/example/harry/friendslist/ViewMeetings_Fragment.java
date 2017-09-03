@@ -96,9 +96,10 @@ public class ViewMeetings_Fragment extends Fragment {
                 final EditText title = new EditText(getContext());
                 title.setText(meeting.getTitle());
                 layout.addView(title);
+                DateFormat df = new SimpleDateFormat("HH:mm");
 
                 final EditText startTime = new EditText(getContext());
-                startTime.setText(meeting.getStartTime());
+                startTime.setText(df.format(meeting.getStartTime()));
                 startTime.setOnClickListener(new View.OnClickListener() {
 
                     @Override
@@ -122,7 +123,7 @@ public class ViewMeetings_Fragment extends Fragment {
                 layout.addView(startTime);
 
                 final EditText endTime = new EditText(getContext());
-                endTime.setText(meeting.getEndTime());
+                endTime.setText(df.format(meeting.getEndTime()));
                 endTime.setOnClickListener(new View.OnClickListener() {
 
                     @Override
