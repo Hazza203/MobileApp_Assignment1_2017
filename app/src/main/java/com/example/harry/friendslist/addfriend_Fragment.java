@@ -21,6 +21,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.provider.ContactsContract;
+import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
 
@@ -93,15 +94,11 @@ public class addfriend_Fragment extends Fragment implements LoaderManager.Loader
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState){
-        return inflater.inflate(R.layout.addfriend_fragment, container, false);
-    }
 
-    public void onActivityCreated(Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
-        mContactsList =
-                (ListView) getActivity().findViewById(R.id.list);
+        View view = inflater.inflate(R.layout.addfriend_fragment, container, false);
+        mContactsList = view.findViewById(R.id.list);
 
-        mCursorAdapter = new SimpleCursorAdapter(
+        /*mCursorAdapter = new SimpleCursorAdapter(
                 getActivity(),
                 R.id.theList,
                 null,
@@ -111,6 +108,23 @@ public class addfriend_Fragment extends Fragment implements LoaderManager.Loader
         getLoaderManager().initLoader(0, null, this);
         mContactsList.setAdapter(mCursorAdapter);
         mContactsList.setOnItemClickListener(this);
+        */
+
+        String[] friends = {"Friend 1",
+                            "Friend 2",
+                            "Friend 3" };
+        ArrayAdapter<String> listViewAdapter = new ArrayAdapter<String>(
+                getActivity(),
+                android.R.layout.simple_list_item_1,
+                friends
+        );
+        mContactsList.setAdapter(listViewAdapter);
+        return view;
+    }
+
+    public void onActivityCreated(Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+
     }
     @Override
     public void onItemClick(
