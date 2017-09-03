@@ -25,14 +25,13 @@ public class listFriends extends Fragment implements
     private List<Friend> friends = new LinkedList<>();
     private ListView friendsList;
 
-    @Override
+
     public void onViewCreated(View view, @Nullable Bundle savedInstances){
         super.onViewCreated(view, savedInstances);
         getActivity().setTitle("Friends List");
     }
 
-    @Nullable
-    @Override
+
     public View onCreateView(LayoutInflater inflater,
                              @Nullable ViewGroup container, @Nullable Bundle savedInstanceState){
 
