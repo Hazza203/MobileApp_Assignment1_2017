@@ -80,7 +80,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         Log.i(LOG_TAG, "onCreate()");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        model = new Model();
+        model = Model.getInstance();
 
         //Login dummy user
         try {

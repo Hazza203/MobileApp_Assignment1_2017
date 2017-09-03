@@ -52,11 +52,10 @@ public class ViewMeetings_Fragment extends Fragment {
         final ListView meetingLV = view.findViewById(R.id.meetingLV);
 
         try {
-            model = new Model();
+            model = Model.getInstance();
             Date time = DateFormat.getTimeInstance(DateFormat.MEDIUM).parse("12:00:00 PM");
             DateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
             Date dob = dateFormat.parse("01/01/1970");
-            model.setCurrentUserString("1", "userName", "Pass1234", "Test User", "test@test", dob, time, getContext());
             user = model.getCurrentUser();
         } catch (ParseException e) {
             e.printStackTrace();

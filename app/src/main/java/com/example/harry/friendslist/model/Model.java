@@ -22,20 +22,20 @@ import static android.content.Context.LOCATION_SERVICE;
 
 public class Model {
 
-    private Model model;
+    private static Model instance;
     private String LOG_TAG = this.getClass().getName();
     private CurrentUser currentUser;
     private Context context;
 
-    public Model createModel(){
-        if(model == null){
-            Log.i(LOG_TAG, "MODEL IS NULLLL");
-            model = new Model();
-            return model;
-        }else{
-            Log.i(LOG_TAG, "MODEL IS not NULLLL");
-            return model;
-        }
+    private Model() {
+
+    }
+    static {
+        instance = new Model();
+    }
+
+    public static Model getInstance(){
+        return instance;
     }
     public void setCurrentUserString(String id,String userName, String password, String name, String email, Date dob, Date time, Context context){
         // set these
