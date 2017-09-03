@@ -105,10 +105,9 @@ public class ViewMeetings_Fragment extends Fragment {
                 startTime.setText(df.format(meeting.getStartTime()));
                 startTime.setOnClickListener(new View.OnClickListener() {
 
-                    //Click to go to next
+                    //Click on start time edit text to bring up a time picker
                     @Override
                     public void onClick(View v) {
-                        // TODO Auto-generated method stub
                         Calendar mcurrentTime = Calendar.getInstance();
                         int hour = mcurrentTime.get(Calendar.HOUR_OF_DAY);
                         int minute = mcurrentTime.get(Calendar.MINUTE);
@@ -130,9 +129,9 @@ public class ViewMeetings_Fragment extends Fragment {
                 endTime.setText(df.format(meeting.getEndTime()));
                 endTime.setOnClickListener(new View.OnClickListener() {
 
+                    //Click on end time edit text to bring up a time picker
                     @Override
                     public void onClick(View v) {
-                        // TODO Auto-generated method stub
                         Calendar mcurrentTime = Calendar.getInstance();
                         int hour = mcurrentTime.get(Calendar.HOUR_OF_DAY);
                         final int minute = mcurrentTime.get(Calendar.MINUTE);
@@ -166,6 +165,8 @@ public class ViewMeetings_Fragment extends Fragment {
 
                 alert.setView(layout);
 
+                //On alert dialog OK, bring up second alert dialog to list
+                //Friends on a multichoice selector
                 alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int whichButton) {
                         final String mName = title.getText().toString();
@@ -193,15 +194,14 @@ public class ViewMeetings_Fragment extends Fragment {
                                     public void onClick(DialogInterface dialog, int indexSelected, boolean isChecked) {
                                         if (isChecked) {
                                             // If the user checked the item, add it to the selected items
-                                            // write your code when user checked the checkbox
                                             selectedItems.add(indexSelected);
                                         } else if (selectedItems.contains(indexSelected)) {
                                             // Else, if the item is already in the array, remove it
-                                            // write your code when user Uchecked the checkbox
                                             selectedItems.remove(Integer.valueOf(indexSelected));
                                         }
                                     }
                                 });
+                        //Update meeting
                         alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int whichButton) {
 
@@ -225,10 +225,7 @@ public class ViewMeetings_Fragment extends Fragment {
                                 // Canceled.
                             }
                         });
-
                         alert.show();
-
-                        // Do something with value!
                     }
                 });
 
@@ -242,6 +239,8 @@ public class ViewMeetings_Fragment extends Fragment {
             }
         });
 
+        //On long click listener which brings up alert dialog box to delete item
+        
         meetingLV.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
             public boolean onItemLongClick(AdapterView<?> adapterView, View view, final int position, long l) {

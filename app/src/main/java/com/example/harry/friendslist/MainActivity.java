@@ -60,6 +60,11 @@ import java.util.List;
 
 import static java.util.Calendar.AM;
 
+/*Main Activity: Begins the application, requests permission, sets up the map, the
+    navigation bar and switches to the other fragments. The Map is the main implementation
+    of this activity as it can make meetings on map click, display friends location aswell as
+    users own location.
+ */
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     private GoogleMap mMap;
@@ -72,6 +77,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private final int MY_PERMISSIONS_READ_CONTACTS = 1;
     private final int MY_PERMISSIONS_FINE_LOCATION = 2;
     private List<Friend> friendsList;
+    private boolean isMainShown = true;
 
     private Model model;
     private CurrentUser user;
@@ -82,7 +88,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         setContentView(R.layout.activity_main);
         model = Model.getInstance();
 
-        //Login dummy user
+        //Login dummy user and create model
         try {
             Date time = DateFormat.getTimeInstance(DateFormat.MEDIUM).parse("12:00:00 PM");
             DateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
@@ -107,7 +113,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         }
 
-        //Check location services are turned on
+        //Check location services are turned on and updates with users current location sends alert if not.
         locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         if (!isLocationEnabled(locationManager)) {
             showLocationAlert();
@@ -116,7 +122,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
 
         // Obtain and draw the navigation bar
-
         mDrawerLayout = (DrawerLayout) findViewById(R.id.drawerLayout);
         mToggle = new ActionBarDrawerToggle(this, mDrawerLayout, R.string.open, R.string.close);
 
@@ -139,16 +144,48 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
 
+    //Handles back button being pressed as on a fragment it would exit the app
+    // overriden to take the user back to the home page if on a fragment
+    @Override
+    public final void onBackPressed()
+    {
+        if (isMainShown)
+        {
+            // We're in the MAIN Fragment.
+            finish();
+        }
+        else
+        {
+            // We're somewhere else, reload the MAIN Fragment.
+            int i = 0;
+            FragmentManager fm = getSupportFragmentManager();
+            for(Fragment frag:fm.getFragments()){
+                if(i == 0){
+                    i++;
+                    continue;
+                }
+                if(frag != null) {
+                    Log.i(LOG_TAG, "Removed frag");
+                    getSupportFragmentManager().beginTransaction().remove(frag).commit();
+                }
+            }
+            getSupportActionBar().setTitle("Friends Locations");
+        }
+    }
+
+    //Check for fine location permission
     @RequiresApi(api = Build.VERSION_CODES.M)
     public boolean canAccessFineLocation() {
         return (PackageManager.PERMISSION_GRANTED == checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION));
     }
 
+    //Check for readcontacts permission
     @RequiresApi(api = Build.VERSION_CODES.M)
     public boolean canReadContacts() {
         return (PackageManager.PERMISSION_GRANTED == checkSelfPermission(Manifest.permission.READ_CONTACTS));
     }
 
+    //Overriden method which handles permission results
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         switch (requestCode) {
@@ -172,11 +209,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
+    //Checks if location services are turned on
     public boolean isLocationEnabled(LocationManager locationManager) {
 
         return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
     }
 
+    //Gets users current location continuously
     private void locationUpdater(){
         PackageManager pm = this.getPackageManager();
         int hasPerm = pm.checkPermission(
@@ -212,6 +251,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
     }
 
+    //Displays alerts asking to turn on location services
     private void showLocationAlert(){
         final AlertDialog.Builder dialog = new AlertDialog.Builder(this);
         dialog.setTitle("Enable Location").setMessage("Your Location Services is Disabled. \nPlease Enable Location.")
@@ -230,6 +270,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         dialog.show();
     }
 
+    //Toggles nav bar
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
 
@@ -240,6 +281,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         return super.onOptionsItemSelected(item);
     }
 
+    //If navigation item clicked, loads intended fragment
     public void navigationItemClicked() {
 
 
@@ -249,7 +291,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                 Fragment fragment = null;
                 switch (menuItem.getItemId()) {
+                    //As home is the activity and not a fragment, remove all fragments from view.
                     case (R.id.home):
+                        isMainShown = true;
                         int i = 0;
                         FragmentManager fm = getSupportFragmentManager();
                         for(Fragment frag:fm.getFragments()){
@@ -265,13 +309,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         getSupportActionBar().setTitle("Friends Locations");
                         break;
                     case (R.id.add_friend):
+                        isMainShown = false;
                         Log.i(LOG_TAG, "Add friend clicked");
                         fragment = new addfriend_Fragment();
                         break;
                     case (R.id.view_meetings):
+                        isMainShown = false;
                         fragment = new ViewMeetings_Fragment();
                         break;
                     case (R.id.how_to):
+                        isMainShown = false;
                         fragment = new howTo_Fragment();
                         break;
                 }
@@ -288,6 +335,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
     }
 
+    //Gets google map ready for display, loads markers with info
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
@@ -344,6 +392,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
+    //Listens fr mapClicks, on click creates dialog for a new meeting
     public void onMapClick(){
         mMap.setOnMapClickListener(new OnMapClickListener() {
             @Override
@@ -353,6 +402,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
     }
 
+    //Sets the markers of friends on the map
     private void setMarkers(GoogleMap googleMap) {
         Log.i(LOG_TAG, "In Set markers");
         int size, count = 0;
@@ -374,6 +424,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
 
+    //Creates alertdialog with input for details of the meeting and then sends creates a new meeting
+    //Code gets a little confusing with all the dialog boxes but works efficiently
     private void makeMeeting(final LatLng latLng, String name){
         boolean addMore = true;
         final int startHour =24, startMin = 24;
@@ -382,6 +434,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         LinearLayout layout = new LinearLayout(MainActivity.this);
         layout.setOrientation(LinearLayout.VERTICAL);
+
+        //First dialog box with Meeting title, start and end time
 
         alert.setTitle("Create new meeting");
 
@@ -392,6 +446,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         final EditText startTime = new EditText(MainActivity.this);
         startTime.setOnClickListener(new View.OnClickListener() {
 
+            //When starttime edit text is clicked a clock widget appears to select the time
             @Override
             public void onClick(View v) {
                 // TODO Auto-generated method stub
@@ -416,6 +471,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         final EditText endTime = new EditText(MainActivity.this);
         endTime.setOnClickListener(new View.OnClickListener() {
 
+            //When endTime edit text is clicked a clock widget appears to select the time
             @Override
             public void onClick(View v) {
                 // TODO Auto-generated method stub
@@ -452,6 +508,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         alert.setView(layout);
 
+        //On alertdialog box 1 OK, create a 2nd dialog box to get the selected friends
         alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int whichButton) {
                 final String mName = title.getText().toString();
@@ -462,6 +519,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 }
                 AlertDialog.Builder alert = new AlertDialog.Builder(MainActivity.this);
 
+                //Loads all friends into a multichoice selector
 
                 final List<Friend> friendList = user.getFriendsList();
                 final ArrayList<Integer> selectedItems = new ArrayList();
@@ -475,18 +533,18 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         new DialogInterface.OnMultiChoiceClickListener() {
                             // indexSelected contains the index of item (of which checkbox checked)
                             @Override
+
                             public void onClick(DialogInterface dialog, int indexSelected, boolean isChecked) {
                                 if (isChecked) {
                                     // If the user checked the item, add it to the selected items
-                                    // write your code when user checked the checkbox
                                     selectedItems.add(indexSelected);
                                 } else if (selectedItems.contains(indexSelected)) {
                                     // Else, if the item is already in the array, remove it
-                                    // write your code when user Uchecked the checkbox
                                     selectedItems.remove(Integer.valueOf(indexSelected));
                                 }
                             }
                         });
+                //Finally create meeting
                 alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int whichButton) {
                         List<Friend> meetingFriends = new LinkedList();
@@ -498,22 +556,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 });
 
                 alert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int whichButton) {
-                        // Canceled.
-                    }
-                });
-
+                    public void onClick(DialogInterface dialog, int whichButton) {}});
                 alert.show();
-
-                // Do something with value!
             }
         });
-
         alert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int whichButton) {
-                // Canceled.
-            }
-        });
+            public void onClick(DialogInterface dialog, int whichButton) {}});
 
         alert.show();
 
