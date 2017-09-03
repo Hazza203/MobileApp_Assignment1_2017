@@ -82,6 +82,8 @@ public class ViewMeetings_Fragment extends Fragment {
         meetingLV.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> a, View v, int position, long id) {
+                final int pos = position;
+                final List<Meeting> meetings = user.getMeetingList();
                 final Meeting meeting = meetings.get(position);
 
                 AlertDialog.Builder alert = new AlertDialog.Builder(getContext());
@@ -204,7 +206,12 @@ public class ViewMeetings_Fragment extends Fragment {
                                 }
                                 user.removeMeeting(meeting.getID());
                                 user.newMeeting(mName, sTime, eTime, newFriends, meeting.getLocation());
-                                onCreateView(inflater, container, savedInstanceState);
+                                meetingItems.remove(pos);
+                                List<Meeting> meetings = user.getMeetingList();
+                                Meeting meeting = meetings.get(pos);
+                                meetingItems.add(meeting.getTitle());
+
+                                listViewAdapter.notifyDataSetChanged();
                             }
                         });
 
