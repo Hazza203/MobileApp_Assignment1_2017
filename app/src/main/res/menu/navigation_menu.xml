@@ -6,6 +6,4 @@
     <item android:id="@+id/view_friends" android:icon="@mipmap/ic_person_black_24dp" android:title="@string/view_friends" />
     <item android:id="@+id/view_meetings" android:icon="@mipmap/ic_settings_black_24dp" android:title="@string/view_meetings"/>
     <item android:id="@+id/how_to" android:icon="@mipmap/ic_schedule_black_24dp" android:title="@string/howTo" />
-
-
 </menu>

@@ -3,6 +3,7 @@ package com.example.harry.friendslist;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -22,7 +23,6 @@ public class listFriends extends Fragment implements
 
     private static final String TAG = addfriend_Fragment.class.getSimpleName();
     private Model model = Model.getInstance();
-    private List<Friend> friends = new LinkedList<>();
     private ListView friendsList;
 
 
@@ -31,20 +31,21 @@ public class listFriends extends Fragment implements
         getActivity().setTitle("Friends List");
     }
 
-
+    @Override
     public View onCreateView(LayoutInflater inflater,
                              @Nullable ViewGroup container, @Nullable Bundle savedInstanceState){
 
         View view = inflater.inflate(R.layout.friendslist, container, false);
-        friends = model.getCurrentUser().getFriendsList();
-        friendsList = view.findViewById(R.id.list);
-        LinkedList<String> names = new LinkedList<>();
+        final List<Friend> friends = model.getCurrentUser().getFriendsList();
+        final LinkedList<String> names = new LinkedList<>();
+        friendsList = view.findViewById(R.id.friendslist);
+        Log.i(TAG, Integer.toString(friends.size()));
 
-        for(int i=0;friends.size()> i; i++){
-            names.add( friends.get(i).getName());
+        for(int i=0; i < friends.size(); i++){
+            names.add(friends.get(i).getName());
         }
 
-        ArrayAdapter<String> listViewAdapter = new ArrayAdapter<String>(
+        final ArrayAdapter<String> listViewAdapter = new ArrayAdapter<String>(
                 getActivity(),
                 android.R.layout.simple_list_item_1,
                 names
@@ -54,11 +55,13 @@ public class listFriends extends Fragment implements
         friendsList.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
             public boolean onItemLongClick(AdapterView<?> adapterView, View view, int i, long l) {
-                model.getCurrentUser().removeAFriend(friends.get(i).getId());
-
                 Toast.makeText(getActivity(), "You just removed: " + friends.get(i).getName(),
                         Toast.LENGTH_LONG).show();
+                String id = friends.get(i).getId();
                 friends.remove(i);
+                model.getCurrentUser().removeAFriend(id);
+                names.remove(i);
+                listViewAdapter.notifyDataSetChanged();
                 return true;
             }
         });
