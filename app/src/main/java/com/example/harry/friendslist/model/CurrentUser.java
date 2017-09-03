@@ -90,7 +90,7 @@ public class CurrentUser extends Friend implements FriendInterface {
         String fID, fName, fEmail, mID, mTitle, mStartTime, mEndTime, mFriendID;
         int noFriends;
         Date fDOB;
-        Double lat, lng;
+        Double lat, lng, fLat, fLng;
         LatLng mLatLng;
         List<Friend> mFriends = new LinkedList<>();
         try (Scanner scanner = new Scanner(context.getResources().openRawResource(R.raw.dummy_data)))
@@ -103,7 +103,9 @@ public class CurrentUser extends Friend implements FriendInterface {
                 fName = scanner.next();
                 fEmail = scanner.next();
                 fDOB = DateFormat.getDateInstance(DateFormat.MEDIUM).parse(scanner.next());
-                Friend friend = new Friend(fID, fName, fEmail, fDOB);
+                fLat = Double.parseDouble(scanner.next());
+                fLng = Double.parseDouble(scanner.next());
+                Friend friend = new Friend(fID, fName, fEmail, fDOB, fLat, fLng);
                 friends.add(friend);
             }
         } catch (Resources.NotFoundException e)
