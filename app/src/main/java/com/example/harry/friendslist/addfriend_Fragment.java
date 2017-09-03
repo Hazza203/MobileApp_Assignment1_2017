@@ -13,10 +13,14 @@ import android.view.ViewGroup;
 import android.provider.ContactsContract;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.Toast;
 
+import com.example.harry.friendslist.model.Model;
 import com.example.harry.friendslist.model.Friend;
 
-import java.util.ArrayList;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.LinkedList;
 
 
@@ -29,16 +33,11 @@ public class addfriend_Fragment extends Fragment implements
 
     private String LOG_TAG = this.getClass().getName();
 
-    private final static int[] TO_IDS = {
-            android.R.id.text1
-    };
     private static final String TAG = addfriend_Fragment.class.getSimpleName();
-
+    private Model model = Model.getInstance();
     private ListView mContactsList;
 
-
     private LinkedList<Friend> friends = new LinkedList<>();
-
 
     public addfriend_Fragment(){}
 
@@ -53,7 +52,6 @@ public class addfriend_Fragment extends Fragment implements
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState){
-
 
         View view = inflater.inflate(R.layout.addfriend_fragment, container, false);
         mContactsList = view.findViewById(R.id.list);
@@ -84,8 +82,19 @@ public class addfriend_Fragment extends Fragment implements
             AdapterView<?> parent, View item, int position, long rowID) {
 
         Log.d(TAG, "Name you clicked on:  "+friends.get(position).getName());
+        SimpleDateFormat dateformat = new SimpleDateFormat("dd/MM/yyyy");
+        Date dob = null;
+        try {
+            dob = dateformat.parse("01/01/2000");
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        model.getCurrentUser().addAFriend("001",friends.get(position).getName(),
+                friends.get(position).getEmail(), dob);
 
-}
+        Toast.makeText(getActivity(), "You just added: " + friends.get(position).getName(),
+                Toast.LENGTH_LONG).show();
+    }
 
     private LinkedList<Friend> retrieveContactName() {
 
@@ -94,7 +103,8 @@ public class addfriend_Fragment extends Fragment implements
         // querying contact data store
         String name;
         String email = "fake@fake.fake";
-        Cursor cursor = getActivity().getContentResolver().query(ContactsContract.Contacts.CONTENT_URI, null, null, null, null);
+        Cursor cursor = getActivity().getContentResolver().query(
+                ContactsContract.Contacts.CONTENT_URI, null, null, null, null);
         if (cursor.getCount() > 0) {
             while (cursor.moveToNext()) {
                 String id = cursor.getString(cursor.getColumnIndex(ContactsContract.Contacts._ID));
@@ -102,9 +112,11 @@ public class addfriend_Fragment extends Fragment implements
                         ContactsContract.CommonDataKinds.Email.CONTENT_URI, null,
                         ContactsContract.CommonDataKinds.Email.CONTACT_ID + " = ?",
                         new String[]{id}, null);
-                name = cursor.getString(cursor.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME));
+                name = cursor.getString(cursor.getColumnIndex(
+                        ContactsContract.Contacts.DISPLAY_NAME));
                 if (cur1.moveToNext()) {
-                    email = cur1.getString(cur1.getColumnIndex(ContactsContract.CommonDataKinds.Email.DATA));
+                    email = cur1.getString(cur1.getColumnIndex(
+                            ContactsContract.CommonDataKinds.Email.DATA));
                 }
                 contacts.add(new Friend(name,email));
             }
