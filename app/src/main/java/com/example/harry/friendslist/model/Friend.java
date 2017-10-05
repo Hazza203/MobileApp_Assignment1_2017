@@ -13,27 +13,47 @@ import java.util.Date;
 
 public class Friend extends FriendsAbstract implements FriendInterface{
 
+    int idIncrement = 101;
+
     public Friend(String name,String email) {
-        this.id = "001";
-        this.name = name;
-        this.email = email;
+        Date date = new Date();
         SimpleDateFormat dateformat = new SimpleDateFormat("dd/MM/yyyy");
         try {
-            this.dob = dateformat.parse("01/01/2000");
+            date = dateformat.parse("01/01/1970");
         } catch (ParseException e) {
             e.printStackTrace();
         }
-        this.latitude = Double.NaN;
-        this.longitude = Double.NaN;
+        this.name = name;
+        this.id = Integer.toString(idIncrement);
+        this.email = email;
+        this.dob = date;
     }
+
+    //Pass retrieved dummyLocationService friend instance to here
+    public Friend(String id, String name, Double lat, Double lng, Date time){
+        String email = "dummyemail@email.com";
+        Date date = new Date();
+        SimpleDateFormat dateformat = new SimpleDateFormat("dd/MM/yyyy");
+        try {
+            date = dateformat.parse("01/01/1970");
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        this.id = id;
+        this.name = name;
+        this.email = email;
+        this.dob = date;
+        this.latitude = lat;
+        this.longitude = lng;
+        this.time = time;
+    }
+
 
     public Friend(String id, String name,String email, Date dob){
         this.id = id;
         this.name = name;
-        this.email = email;
         this.dob = dob;
-        this.latitude = Double.NaN;
-        this.longitude = Double.NaN;
+        this.email = email;
     }
 
     public Friend(String id, String name,String email, Date dob, Double latitude, Double longitude, Date time){

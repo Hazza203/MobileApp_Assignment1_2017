@@ -27,6 +27,7 @@ public class Model {
     public static Model getInstance(){
         return instance;
     }
+
     public void setCurrentUserString(String id,String userName, String password, String name, String email, Date dob, Date time, Context context){
         // set these
         Double longitude = Double.NaN;

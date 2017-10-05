@@ -1,7 +1,12 @@
 package com.example.harry.friendslist;
 
+import android.Manifest;
 import android.content.ContentResolver;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.os.Build;
+import android.support.annotation.RequiresApi;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.widget.AdapterView;
 import android.os.Bundle;
@@ -45,7 +50,7 @@ public class addfriend_Fragment extends Fragment implements
     public void onViewCreated(View view, @Nullable Bundle savedInstances){
         Log.i(LOG_TAG, "Add friend fragment");
         super.onViewCreated(view, savedInstances);
-        getActivity().setTitle("Add Friend");
+        getActivity().setTitle("Add Friend from Contacts");
     }
 
     @Nullable

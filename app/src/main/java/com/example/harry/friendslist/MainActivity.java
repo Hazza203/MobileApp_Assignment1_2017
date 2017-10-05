@@ -104,21 +104,25 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             if (!canAccessFineLocation()) {
                 ActivityCompat.requestPermissions(MainActivity.this,
                         new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                        MY_PERMISSIONS_READ_CONTACTS);
+                        MY_PERMISSIONS_FINE_LOCATION);
+            } else {
+                //Check location services are turned on and updates with users current location sends alert if not.
+                locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+                if (!isLocationEnabled(locationManager)) {
+                    showLocationAlert();
+                } else {
+                    locationUpdater();
+                }
+                // Obtain the SupportMapFragment and get notified when the map is ready to be used.
+                SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                        .findFragmentById(R.id.map);
+                mapFragment.getMapAsync(this);
             }
             if (!canReadContacts()) {
                 ActivityCompat.requestPermissions(MainActivity.this,
                         new String[]{Manifest.permission.READ_CONTACTS},
-                        MY_PERMISSIONS_FINE_LOCATION);
+                        MY_PERMISSIONS_READ_CONTACTS);
             }
-        }
-
-        //Check location services are turned on and updates with users current location sends alert if not.
-        locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
-        if (!isLocationEnabled(locationManager)) {
-            showLocationAlert();
-        } else {
-            locationUpdater();
         }
 
         // Obtain and draw the navigation bar
@@ -136,12 +140,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         nv = (NavigationView) findViewById(R.id.nav1);
         nv.bringToFront();
         navigationItemClicked();
-
-        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.map);
-        mapFragment.getMapAsync(this);
-
     }
 
     //Handles back button being pressed as on a fragment it would exit the app
@@ -200,7 +198,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             case MY_PERMISSIONS_FINE_LOCATION: {
                 Log.i(LOG_TAG, "Granting permision");
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-
+                    //Check location services are turned on and updates with users current location sends alert if not.
+                    locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+                    if (!isLocationEnabled(locationManager)) {
+                        showLocationAlert();
+                    } else {
+                        locationUpdater();
+                    }
+                    // Obtain the SupportMapFragment and get notified when the map is ready to be used.
+                    SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                            .findFragmentById(R.id.map);
+                    mapFragment.getMapAsync(this);
                 } else {
 
                 }
@@ -223,7 +231,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 this.getPackageName());
         Log.i(LOG_TAG, "Perms" + hasPerm + " " + PackageManager.PERMISSION_GRANTED);
         if (hasPerm == PackageManager.PERMISSION_GRANTED) {
-            locationListener = new LocationListener() {@Override
+            locationListener = new LocationListener() {
+                @Override
             public void onLocationChanged(Location location) {
                 user.setLatitude(location.getLatitude());
                 user.setLongitude(location.getLongitude());
@@ -388,7 +397,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     }
                     DateFormat dateFormat = new SimpleDateFormat("HH:mm:ss aa");
                     tvName.setText("Name: " + friendStr);
-                    tvTime.setText("Time: " + dateFormat.format(time));
+                    if(time != null){
+                        tvTime.setText("Time: " + dateFormat.format(time));
+                    }
                     return view;
                 }
             });
@@ -419,6 +430,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         while (count < size) {
             Friend friend = friendsList.get(count);
+
             lat = friend.getLatitude();
             lng = friend.getLongitude();
             mMap.addMarker(new MarkerOptions().position(new LatLng(lat, lng)));

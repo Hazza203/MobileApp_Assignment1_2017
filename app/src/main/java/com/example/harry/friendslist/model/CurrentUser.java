@@ -4,14 +4,17 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.util.Log;
 
+import com.example.harry.friendslist.DummyLocationService;
 import com.example.harry.friendslist.R;
 import com.example.harry.friendslist.interfaces.FriendInterface;
 import com.google.android.gms.maps.model.LatLng;
 
 import java.io.File;
+import java.sql.Time;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -58,6 +61,14 @@ public class CurrentUser extends Friend implements FriendInterface {
         if(!friends.contains(newFriend))
             friends.add(newFriend);
     }
+
+    //Adding a new friend via friend returned from dummylocationservices
+    public void addAFriend(String id, String name, Double lat, Double lng, Date time){
+        final Friend newFriend = new Friend(id, name, lat, lng, time);
+            if(!friends.contains(newFriend)) {
+                friends.add(newFriend);
+            }
+    }
     public void removeAFriend(String id){
         for(int i = 0; i < friends.size(); i++){
             if(friends.get(i).getId().equals(id)){
@@ -94,30 +105,28 @@ public class CurrentUser extends Friend implements FriendInterface {
         Date fDOB, time;
         Double lat, lng, fLat, fLng;
         LatLng mLatLng;
+
         List<Friend> mFriends = new LinkedList<>();
-        try (Scanner scanner = new Scanner(context.getResources().openRawResource(R.raw.friend_file)))
-        {
-            // match comma and 0 or more whitepace (to catch newlines)
-            scanner.useDelimiter(",\\s*");
-            while (scanner.hasNext())
-            {
-                fID = scanner.next();
-                fName = scanner.next();
-                fEmail = scanner.next();
-                DateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
-                fDOB = dateFormat.parse(scanner.next());
-                fLat = Double.parseDouble(scanner.next());
-                fLng = Double.parseDouble(scanner.next());
-                time = DateFormat.getTimeInstance(DateFormat.MEDIUM).parse(scanner.next());
-                Friend friend = new Friend(fID, fName, fEmail, fDOB, fLat, fLng, time);
-                friends.add(friend);
-            }
-        } catch (Resources.NotFoundException e)
-        {
-            Log.i(LOG_TAG, "File Not Found Exception Caught");
-        } catch (ParseException e)
-        {
-            Log.i(LOG_TAG, "ParseException Caught (Incorrect File Format)");
+        DummyLocationService dummyLocationService = DummyLocationService.getSingletonInstance(context);
+
+        //Setting time to the latter of the provided times
+        Calendar cal = Calendar.getInstance();
+        cal.set(Calendar.HOUR_OF_DAY, 9);
+        cal.set(Calendar.MINUTE, 49);
+        cal.set(Calendar.SECOND, 0);
+        Date date = new Date();
+        date = cal.getTime();
+
+        List<DummyLocationService.FriendLocation> matched = dummyLocationService
+                .getFriendLocationsForTime(date, 2, 0);
+
+        for(int i = 0; i < matched.size(); i++){
+            DummyLocationService.FriendLocation newFriend = matched.get(i);
+
+            Friend friend = new Friend(newFriend.id, newFriend.name, newFriend.latitude, newFriend.longitude, newFriend.time);
+            friends.add(friend);
+            Log.i(LOG_TAG, "ID : " + friend.id);
+            Log.i(LOG_TAG, "LAT : " + friend.latitude);
         }
 
         try (Scanner scanner = new Scanner(context.getResources().openRawResource(R.raw.meetings_file)))
