@@ -100,10 +100,9 @@ public class CurrentUser extends Friend implements FriendInterface {
     private void loadData(Context context){
 
         //Need to replace dummy_data.txt with actual friend and meeting files
-        String fID, fName, fEmail, mTitle, mStartTime, mEndTime, mFriendID;
+        String name, mTitle, mStartTime, mEndTime, mFriendID;
         int noFriends;
-        Date fDOB, time;
-        Double lat, lng, fLat, fLng;
+        Double lat, lng;
         LatLng mLatLng;
 
         List<Friend> mFriends = new LinkedList<>();
@@ -122,8 +121,10 @@ public class CurrentUser extends Friend implements FriendInterface {
 
         for(int i = 0; i < matched.size(); i++){
             DummyLocationService.FriendLocation newFriend = matched.get(i);
-
-            Friend friend = new Friend(newFriend.id, newFriend.name, newFriend.latitude, newFriend.longitude, newFriend.time);
+            name = newFriend.name;
+            //Remove the digit in the name
+            name = name.replaceAll("\\d","");
+            Friend friend = new Friend(newFriend.id, name, newFriend.latitude, newFriend.longitude, newFriend.time);
             friends.add(friend);
             Log.i(LOG_TAG, "ID : " + friend.id);
             Log.i(LOG_TAG, "LAT : " + friend.latitude);
