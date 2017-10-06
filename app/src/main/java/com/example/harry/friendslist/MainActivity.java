@@ -34,6 +34,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.TimePicker;
 
+import com.example.harry.friendslist.controller.AsyncDistanceDemand;
 import com.example.harry.friendslist.model.CurrentUser;
 import com.example.harry.friendslist.model.Friend;
 import com.example.harry.friendslist.model.Meeting;
@@ -65,7 +66,7 @@ import static java.util.Calendar.AM;
     of this activity as it can make meetings on map click, display friends location aswell as
     users own location.
  */
-public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
+public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, View.OnClickListener {
 
     private GoogleMap mMap;
     private String LOG_TAG = this.getClass().getName();
@@ -140,6 +141,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         nv = (NavigationView) findViewById(R.id.nav1);
         nv.bringToFront();
         navigationItemClicked();
+
+        Button suggestMeetingButton = (Button)findViewById(R.id.suggestMeetingButton);
+        suggestMeetingButton.setOnClickListener(this);
     }
 
     //Handles back button being pressed as on a fragment it would exit the app
@@ -299,6 +303,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             public boolean onNavigationItemSelected(MenuItem menuItem) {
 
                 Fragment fragment = null;
+                String tag = "";
                 switch (menuItem.getItemId()) {
                     //As home is the activity and not a fragment, remove all fragments from view.
                     case (R.id.home):
@@ -320,24 +325,28 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     case (R.id.add_friend):
                         isMainShown = false;
                         fragment = new addfriend_Fragment();
+                        tag = "addFriendFragTag";
                         break;
                     case (R.id.view_friends):
                         isMainShown = false;
                         fragment = new listFriends();
+                        tag = "viewFriendFragTag";
                         break;
                     case (R.id.view_meetings):
                         isMainShown = false;
                         fragment = new ViewMeetings_Fragment();
+                        tag = "viewMeetingsFragTag";
                         break;
                     case (R.id.how_to):
                         isMainShown = false;
                         fragment = new howTo_Fragment();
+                        tag = "howToFragTag";
                         break;
                 }
 
                 if(fragment != null){
                     FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
-                    ft.replace(R.id.map, fragment);
+                    ft.replace(R.id.map, fragment, tag);
                     ft.commit();
                 }
                 DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawerLayout);
@@ -356,7 +365,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         uiSettings.setZoomControlsEnabled(true);
         uiSettings.setCompassEnabled(true);
         LatLng myLocation = new LatLng(-37.8136, 144.9634);
-        // Add a marker in Sydney and move the camera
+        //Move and zoom camera to melbourne
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             return;
         }
@@ -411,7 +420,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mMap.setOnMapClickListener(new OnMapClickListener() {
             @Override
             public void onMapClick(LatLng latLng) {
-                makeMeeting(latLng, null);
+                makeMeeting(latLng);
             }
         });
     }
@@ -441,145 +450,63 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     //Creates alertdialog with input for details of the meeting and then sends creates a new meeting
     //Code gets a little confusing with all the dialog boxes but works efficiently
-    private void makeMeeting(final LatLng latLng, String name){
-        boolean addMore = true;
-        final int startHour =24, startMin = 24;
+    private void makeMeeting(final LatLng latLng){
+        Double lat = latLng.latitude;
+        Double lng = latLng.longitude;
+        Fragment fragment = new addMeeting_Fragment();
+        Bundle bundle = new Bundle();
+        bundle.putDouble("lat", lat);
+        bundle.putDouble("lng", lng);
+        fragment.setArguments(bundle);
+        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+        ft.replace(R.id.map, fragment);
+        ft.commit();
+    }
+
+    @Override
+    public void onClick(View v){
+        switch(v.getId()){
+            case    R.id.suggestMeetingButton:{
+                AsyncDistanceDemand asyncDistanceDemand = new AsyncDistanceDemand(this, null);
+                asyncDistanceDemand.execute();
+
+            }
+        }
+    }
+
+    public void onDistanceCalculated(String duration, Double distance, Friend friend, String location){
 
         AlertDialog.Builder alert = new AlertDialog.Builder(MainActivity.this);
 
         LinearLayout layout = new LinearLayout(MainActivity.this);
         layout.setOrientation(LinearLayout.VERTICAL);
 
-        //First dialog box with Meeting title, start and end time
-
-        alert.setTitle("Create new meeting");
-
-        final EditText title = new EditText(MainActivity.this);
-        title.setHint("Title");
-        layout.addView(title);
-
-        final EditText startTime = new EditText(MainActivity.this);
-        startTime.setOnClickListener(new View.OnClickListener() {
-
-            //When starttime edit text is clicked a clock widget appears to select the time
+        alert.setTitle("Schedule meeting?");
+        alert.setMessage("Your closest friend is " + friend.getName() + "! Would you like to meet him at " + location + "?\n" +
+        "Distance: " + distance.toString() + "\nTrip Duration: " + duration);
+        alert.setPositiveButton("Okay", new DialogInterface.OnClickListener() {
             @Override
-            public void onClick(View v) {
-                // TODO Auto-generated method stub
-                Calendar mcurrentTime = Calendar.getInstance();
-                int hour = mcurrentTime.get(Calendar.HOUR_OF_DAY);
-                int minute = mcurrentTime.get(Calendar.MINUTE);
-                TimePickerDialog mTimePicker;
-                mTimePicker = new TimePickerDialog(MainActivity.this, new TimePickerDialog.OnTimeSetListener() {
-                    @Override
-                    public void onTimeSet(TimePicker timePicker, int selectedHour, int selectedMinute) {
-                        startTime.setText( selectedHour + ":" + selectedMinute);
-                    }
-                }, hour, minute, true);//Yes 24 hour time
-                mTimePicker.setTitle("Select Time");
-                mTimePicker.show();
+            public void onClick(DialogInterface dialogInterface, int i) {
+
             }
         });
-        startTime.setHint("Start Time");
-        startTime.setKeyListener(null);
-        layout.addView(startTime);
 
-        final EditText endTime = new EditText(MainActivity.this);
-        endTime.setOnClickListener(new View.OnClickListener() {
-
-            //When endTime edit text is clicked a clock widget appears to select the time
+        alert.setNeutralButton("Next suggestion", new DialogInterface.OnClickListener() {
             @Override
-            public void onClick(View v) {
-                // TODO Auto-generated method stub
-                Calendar mcurrentTime = Calendar.getInstance();
-                int hour = mcurrentTime.get(Calendar.HOUR_OF_DAY);
-                final int minute = mcurrentTime.get(Calendar.MINUTE);
-                TimePickerDialog mTimePicker;
-                mTimePicker = new TimePickerDialog(MainActivity.this, new TimePickerDialog.OnTimeSetListener() {
-                    @Override
-                    public void onTimeSet(TimePicker timePicker, int selectedHour, int selectedMinute) {
-                        String sTime = startTime.getText().toString();
-                        String time[] = sTime.split(":");
-
-                        int hour = Integer.parseInt(time[0]);
-                        int min = Integer.parseInt(time[1]);
-
-                        if(hour == selectedHour){
-                            if(selectedMinute > min){
-                                endTime.setText( selectedHour + ":" + selectedMinute);
-                            }
-                        }else if(selectedHour > hour){
-                            endTime.setText( selectedHour + ":" + selectedMinute);
-                        }
-                    }
-                }, hour, minute, true);//Yes 24 hour time
-                mTimePicker.setTitle("Select Time");
-                mTimePicker.show();
+            public void onClick(DialogInterface dialogInterface, int i) {
 
             }
         });
-        endTime.setHint("End Time");
-        endTime.setKeyListener(null);
-        layout.addView(endTime);
 
-        alert.setView(layout);
-
-        //On alertdialog box 1 OK, create a 2nd dialog box to get the selected friends
-        alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int whichButton) {
-                final String mName = title.getText().toString();
-                final String sTime = startTime.getText().toString();
-                final String eTime = endTime.getText().toString();
-                if(mName.equals("")|| sTime.equals("") || eTime.equals("")){
-                    return;
-                }
-                AlertDialog.Builder alert = new AlertDialog.Builder(MainActivity.this);
-
-                //Loads all friends into a multichoice selector
-
-                final List<Friend> friendList = user.getFriendsList();
-                final ArrayList<Integer> selectedItems = new ArrayList();
-                final CharSequence[] friends = new CharSequence[friendList.size()];
-                for(int i = 0; i < friendList.size(); i++){
-                    Friend friend = friendList.get(i);
-                    friends[i] = friend.getName();
-                }
-                alert.setTitle("Select Friends");
-                alert.setMultiChoiceItems(friends, null,
-                        new DialogInterface.OnMultiChoiceClickListener() {
-                            // indexSelected contains the index of item (of which checkbox checked)
-                            @Override
-
-                            public void onClick(DialogInterface dialog, int indexSelected, boolean isChecked) {
-                                if (isChecked) {
-                                    // If the user checked the item, add it to the selected items
-                                    selectedItems.add(indexSelected);
-                                } else if (selectedItems.contains(indexSelected)) {
-                                    // Else, if the item is already in the array, remove it
-                                    selectedItems.remove(Integer.valueOf(indexSelected));
-                                }
-                            }
-                        });
-                //Finally create meeting
-                alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int whichButton) {
-                        List<Friend> meetingFriends = new LinkedList();
-                        for(int i = 0; i < selectedItems.size(); i++){
-                            meetingFriends.add(friendList.get(selectedItems.get(i)));
-                        }
-                        user.newMeeting(mName, sTime, eTime, meetingFriends, latLng);
-                    }
-                });
-
-                alert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int whichButton) {}});
-                alert.show();
-            }
-        });
         alert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int whichButton) {}});
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+
+            }
+        });
+
 
         alert.show();
-
     }
 
     @Override

@@ -20,4 +20,6 @@
     <string name="name">Name: </string>
     <string name="meeting">Make Meeting </string>
     <string name="updateTime">Time: </string>
+    <string name="suggestMeetingbutton">Suggest Meeting</string>
+    <string name="addMeetingButtontxt">Add Meeting</string>
 </resources>
