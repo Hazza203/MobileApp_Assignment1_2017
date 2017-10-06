@@ -1,6 +1,7 @@
 package com.example.harry.friendslist;
 
 import android.Manifest;
+import android.app.ProgressDialog;
 import android.app.TimePickerDialog;
 import android.location.Location;
 import android.location.LocationListener;
@@ -33,6 +34,7 @@ import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.TimePicker;
+import android.widget.Toast;
 
 import com.example.harry.friendslist.controller.AsyncDistanceDemand;
 import com.example.harry.friendslist.model.CurrentUser;
@@ -79,9 +81,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private final int MY_PERMISSIONS_FINE_LOCATION = 2;
     private List<Friend> friendsList;
     private boolean isMainShown = true;
+    private ProgressDialog progressDialog;
 
     private Model model;
     private CurrentUser user;
+
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.i(LOG_TAG, "onCreate()");
@@ -467,23 +473,32 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onClick(View v){
         switch(v.getId()){
             case    R.id.suggestMeetingButton:{
+                progressDialog = new ProgressDialog(this);
+                progressDialog.setMessage("Finding closest friend...");
+                progressDialog.show();
                 AsyncDistanceDemand asyncDistanceDemand = new AsyncDistanceDemand(this, null);
                 asyncDistanceDemand.execute();
-
             }
         }
     }
 
+    public void failedDistance(){
+        progressDialog.dismiss();
+        Toast.makeText(MainActivity.this, "Please wait a while.", Toast.LENGTH_LONG).show();
+    }
+
     public void onDistanceCalculated(String duration, Double distance, Friend friend, String location){
 
-        AlertDialog.Builder alert = new AlertDialog.Builder(MainActivity.this);
+        progressDialog.dismiss();
+
+        final AlertDialog.Builder alert = new AlertDialog.Builder(MainActivity.this);
 
         LinearLayout layout = new LinearLayout(MainActivity.this);
         layout.setOrientation(LinearLayout.VERTICAL);
 
         alert.setTitle("Schedule meeting?");
         alert.setMessage("Your closest friend is " + friend.getName() + "! Would you like to meet him at " + location + "?\n" +
-        "Distance: " + distance.toString() + "\nTrip Duration: " + duration);
+        "Distance: " + distance.toString() + " km's\nWalking time: " + duration);
         alert.setPositiveButton("Okay", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialogInterface, int i) {
@@ -501,7 +516,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         alert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialogInterface, int i) {
-
             }
         });
 

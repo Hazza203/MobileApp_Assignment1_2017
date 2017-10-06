@@ -6,6 +6,7 @@ import android.util.Log;
 import android.widget.ProgressBar;
 
 import com.example.harry.friendslist.MainActivity;
+import com.example.harry.friendslist.R;
 import com.example.harry.friendslist.model.CurrentUser;
 import com.example.harry.friendslist.model.Friend;
 import com.example.harry.friendslist.model.Model;
@@ -15,6 +16,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -22,6 +24,8 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
+
+import javax.net.ssl.HttpsURLConnection;
 
 /**
  * Created by harry on 6/10/2017.
@@ -39,19 +43,10 @@ public class AsyncDistanceDemand extends AsyncTask<String, Void, String> {
     private Friend finalFriend;
     private String[] friendsToExclude;
     private MainActivity mainActivity;
-    private ProgressDialog progressDialog;
 
     public AsyncDistanceDemand(MainActivity mainActiviy, String[] friendsToExclude){
         this.mainActivity = mainActiviy;
         this.friendsToExclude = friendsToExclude;
-        progressDialog = new ProgressDialog(mainActivity);
-    }
-
-    @Override
-    protected void onPreExecute() {
-        progressDialog.setMessage("Finding closest match...");
-        progressDialog.setIndeterminate(true);
-        progressDialog.show();
     }
 
     @Override
@@ -94,12 +89,22 @@ public class AsyncDistanceDemand extends AsyncTask<String, Void, String> {
             Double userDistance = getDistance(userToMidJSON);
             Double friendDistance = getDistance(friendToMidJSON);
 
+            if(userDistance == null || friendDistance == null){
+                return "failed";
+            }
+
             if((userDistance + friendDistance) < minDistance){
                 minDistance = userDistance + friendDistance;
                 finalDistance = userDistance;
                 finalDuration = getDuration(userToMidJSON);
                 finalLocation = getLocationStr(userToMidJSON);
                 finalFriend = friend;
+            }
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
 
@@ -110,20 +115,23 @@ public class AsyncDistanceDemand extends AsyncTask<String, Void, String> {
 
         double dist = 0.0;
 
-        String urlString = "http://maps.googleapis.com/maps/api/directions/json?origin="
-                + fromLat + "," + fromLng + "&destination=" + toLat + "," + toLng
-                + "&mode=walking&sensor=false";
+        String urlString = "http://maps.googleapis.com/maps/api/distancematrix/json?origins="
+                + fromLat + "," + fromLng + "&destinations=" + toLat + "," + toLng
+                + "&mode=walking&sensor=false";//key=AIzaSyAre8Beff9w66AP49w17oMxGKfIt8L3NOA";
+
         Log.e(LOG_TAG, urlString);
 
+        String line;
         StringBuilder mJsonResults = new StringBuilder();
 
         try{
             URL url = new URL(urlString);
             HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
-            InputStreamReader in = new InputStreamReader(urlConnection.getInputStream());
-            int b;
-            while ((b = in.read()) != -1) {
-                mJsonResults.append((char) b);
+            urlConnection.setRequestMethod("GET");
+            urlConnection.connect();
+            BufferedReader br = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
+            while((line = br.readLine()) != null){
+                mJsonResults.append(line);
             }
         }  catch (MalformedURLException e) {
             Log.e(LOG_TAG, "Error processing Distance Matrix API URL");
@@ -136,6 +144,7 @@ public class AsyncDistanceDemand extends AsyncTask<String, Void, String> {
 
         try {
             JSONObject jsonObject = new JSONObject(mJsonResults.toString());
+            Log.e(LOG_TAG, jsonObject.toString());
             return jsonObject;
         } catch (JSONException e) {
             Log.e(LOG_TAG, "Error parsing JSON");
@@ -146,11 +155,9 @@ public class AsyncDistanceDemand extends AsyncTask<String, Void, String> {
     private String getDuration(JSONObject jsonObject){
         try{
 
-            JSONArray array = jsonObject.getJSONArray("routes");
-            JSONObject routes = array.getJSONObject(0);
-            JSONArray legs = routes.getJSONArray("legs");
-            JSONObject steps = legs.getJSONObject(0);
-            JSONObject duration = steps.getJSONObject("duration");
+            JSONObject duration = jsonObject.getJSONArray("rows")
+                    .getJSONObject(0).getJSONArray("elements")
+                    .getJSONObject(0).getJSONObject("duration");
             String durationStr = duration.getString("text");
             return durationStr;
 
@@ -163,12 +170,9 @@ public class AsyncDistanceDemand extends AsyncTask<String, Void, String> {
     private Double getDistance(JSONObject jsonObject){
         Double dist;
         try{
-            JSONArray array = jsonObject.getJSONArray("routes");
-            JSONObject routes = array.getJSONObject(0);
-            JSONArray legs = routes.getJSONArray("legs");
-            JSONObject steps = legs.getJSONObject(0);
-            JSONObject distance = steps.getJSONObject("distance");
-
+            JSONObject distance = jsonObject.getJSONArray("rows")
+                    .getJSONObject(0).getJSONArray("elements")
+                    .getJSONObject(0).getJSONObject("distance");
             dist = Double.parseDouble(distance.getString("text").replaceAll("[^\\.0123456789]",""));
             return dist;
 
@@ -181,11 +185,8 @@ public class AsyncDistanceDemand extends AsyncTask<String, Void, String> {
     private String getLocationStr(JSONObject jsonObject){
         String locationStr;
         try{
-            JSONArray array = jsonObject.getJSONArray("routes");
-            JSONObject routes = array.getJSONObject(0);
-            JSONArray legs = routes.getJSONArray("legs");
-            JSONObject steps = legs.getJSONObject(0);
-            locationStr = steps.getString("end_address");
+            JSONArray location = jsonObject.getJSONArray("destination_addresses");
+            locationStr = location.getString(0);
             return locationStr;
 
         } catch (JSONException e){
@@ -195,7 +196,10 @@ public class AsyncDistanceDemand extends AsyncTask<String, Void, String> {
     }
 
     protected void onPostExecute(String result){
-        progressDialog.dismiss();
+        if(result.equals("failed")){
+            mainActivity.failedDistance();
+            return;
+        }
         mainActivity.onDistanceCalculated(finalDuration,finalDistance,finalFriend, finalLocation);
     }
 }
