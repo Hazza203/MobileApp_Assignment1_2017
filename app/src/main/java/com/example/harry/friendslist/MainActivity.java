@@ -42,6 +42,7 @@ import android.widget.Toast;
 import com.example.harry.friendslist.controller.AsyncDistanceDemand;
 import com.example.harry.friendslist.controller.NotificationReceiver;
 import com.example.harry.friendslist.controller.SuggestTimerTask;
+import com.example.harry.friendslist.database.DatabaseHandler;
 import com.example.harry.friendslist.model.CurrentUser;
 import com.example.harry.friendslist.model.Friend;
 import com.example.harry.friendslist.model.Meeting;
@@ -94,6 +95,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private Model model;
     private CurrentUser user;
+    private DatabaseHandler db;
     public static boolean alive;
 
 
@@ -105,6 +107,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         model = Model.getInstance();
+        db = new DatabaseHandler(this);
+
 
         //Login dummy user and create model
         try {
@@ -113,6 +117,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             Date dob = dateFormat.parse("01/01/1970");
             model.setCurrentUserString("1", "userName", "Pass1234", "Test User", "test@test", dob, time, MainActivity.this);
             user = model.getCurrentUser();
+            db.addFriend(new Friend("1","email@email.com","Test User",dob));
         } catch (ParseException e) {
             e.printStackTrace();
         }
@@ -655,7 +660,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     protected void onStop()
     {
-        alive = false;
+        friendsList = user.getFriendsList();
+        meetingsList = user.getMeetingList();
+        for(int i = 0; i < friendsList.size(); i++){
+            db.addFriend(friendsList.get(i));
+        }
+
+        for(int i = 0; i < meetingsList.size(); i++){
+            db.addMeeting(meetingsList.get(i));
+        }
+
         Log.i(LOG_TAG, "onStop()");
         super.onStop();
     }

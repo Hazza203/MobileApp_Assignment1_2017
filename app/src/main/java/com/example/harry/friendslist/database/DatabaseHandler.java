@@ -24,6 +24,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     private static final String LOG_TAG = DatabaseHandler.class
             .getName();
 
+    private static DatabaseHandler instance;
+
     private static final int DATABASE_VERSION = 1;
 
     private static final String DATABASE_NAME = "assignment2.db";
@@ -71,6 +73,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     public DatabaseHandler(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
     }
+
     public void onCreate(SQLiteDatabase db) {
         db.execSQL(CREATE_USER_TABLE);
         db.execSQL(CREATE_MEETING_TABLE);
@@ -91,6 +94,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         values.put("name", newUser.getName());
         values.put("email", newUser.getEmail());
         values.put("dob", DateFormat.getInstance().format(newUser.getBirthday()));
+        values.put("lat", newUser.getLatitude());
 
         // Inserting Row
         db.insert(TABLE_USER, null, values);
