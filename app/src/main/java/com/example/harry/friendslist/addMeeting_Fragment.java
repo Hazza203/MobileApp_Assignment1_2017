@@ -151,8 +151,8 @@ public class addMeeting_Fragment extends Fragment {
         alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int whichButton) {
                 final String mName = title.getText().toString();
-                final String sTime = startTime.getText().toString();
-                final String eTime = endTime.getText().toString();
+                final String sTime = startTime.getText().toString() + ":00";
+                final String eTime = endTime.getText().toString() + ":00";
                 if(mName.equals("")|| sTime.equals("") || eTime.equals("")){
                     return;
                 }
