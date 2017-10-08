@@ -1,9 +1,13 @@
 package com.example.harry.friendslist;
 
 import android.Manifest;
+import android.app.AlarmManager;
+import android.app.ProgressDialog;
 import android.app.TimePickerDialog;
 import android.location.Location;
 import android.location.LocationListener;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.support.v4.app.Fragment;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -33,7 +37,11 @@ import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.TimePicker;
+import android.widget.Toast;
 
+import com.example.harry.friendslist.controller.AsyncDistanceDemand;
+import com.example.harry.friendslist.controller.NotificationReceiver;
+import com.example.harry.friendslist.controller.SuggestTimerTask;
 import com.example.harry.friendslist.database.DatabaseHandler;
 import com.example.harry.friendslist.model.CurrentUser;
 import com.example.harry.friendslist.model.Friend;
@@ -45,6 +53,8 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.GoogleMap.OnMapClickListener;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.UiSettings;
+import com.google.android.gms.maps.model.BitmapDescriptor;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
@@ -58,6 +68,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Timer;
 
 import static java.util.Calendar.AM;
 
@@ -66,7 +77,7 @@ import static java.util.Calendar.AM;
     of this activity as it can make meetings on map click, display friends location aswell as
     users own location.
  */
-public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
+public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, View.OnClickListener {
 
     private GoogleMap mMap;
     private String LOG_TAG = this.getClass().getName();
@@ -78,17 +89,27 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private final int MY_PERMISSIONS_READ_CONTACTS = 1;
     private final int MY_PERMISSIONS_FINE_LOCATION = 2;
     private List<Friend> friendsList;
+    private List<Meeting> meetingsList;
     private boolean isMainShown = true;
+    private ProgressDialog progressDialog;
 
     private Model model;
     private CurrentUser user;
+    private DatabaseHandler db;
+    public static boolean alive;
+
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        alive = true;
         Log.i(LOG_TAG, "onCreate()");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         model = Model.getInstance();
-        DatabaseHandler db = new DatabaseHandler(this);
+        db = new DatabaseHandler(this);
+
+
         //Login dummy user and create model
         try {
             Date time = DateFormat.getTimeInstance(DateFormat.MEDIUM).parse("12:00:00 PM");
@@ -96,6 +117,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             Date dob = dateFormat.parse("01/01/1970");
             model.setCurrentUserString("1", "userName", "Pass1234", "Test User", "test@test", dob, time, MainActivity.this);
             user = model.getCurrentUser();
+            db.addFriend(new Friend("1","email@email.com","Test User",dob));
         } catch (ParseException e) {
             e.printStackTrace();
         }
@@ -105,21 +127,25 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             if (!canAccessFineLocation()) {
                 ActivityCompat.requestPermissions(MainActivity.this,
                         new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                        MY_PERMISSIONS_READ_CONTACTS);
+                        MY_PERMISSIONS_FINE_LOCATION);
+            } else {
+                //Check location services are turned on and updates with users current location sends alert if not.
+                locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+                if (!isLocationEnabled(locationManager)) {
+                    showLocationAlert();
+                } else {
+                    locationUpdater();
+                }
+                // Obtain the SupportMapFragment and get notified when the map is ready to be used.
+                SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                        .findFragmentById(R.id.map);
+                mapFragment.getMapAsync(this);
             }
             if (!canReadContacts()) {
                 ActivityCompat.requestPermissions(MainActivity.this,
                         new String[]{Manifest.permission.READ_CONTACTS},
-                        MY_PERMISSIONS_FINE_LOCATION);
+                        MY_PERMISSIONS_READ_CONTACTS);
             }
-        }
-
-        //Check location services are turned on and updates with users current location sends alert if not.
-        locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
-        if (!isLocationEnabled(locationManager)) {
-            showLocationAlert();
-        } else {
-            locationUpdater();
         }
 
         // Obtain and draw the navigation bar
@@ -138,21 +164,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         nv.bringToFront();
         navigationItemClicked();
 
-        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.map);
-        mapFragment.getMapAsync(this);
-        SimpleDateFormat dateformat = new SimpleDateFormat("dd/MM/yyyy");
-        Date dob = null;
-        try {
-            dob = dateformat.parse("01/01/2000");
-        } catch (ParseException e) {
-            e.printStackTrace();
-        }
+        Button suggestMeetingButton = (Button)findViewById(R.id.suggestMeetingButton);
+        suggestMeetingButton.setOnClickListener(this);
 
-        db.addFriend(new Friend("3","email@email.com","aname",dob));
-        Log.i(LOG_TAG, "Friend at 3 : "+ db.getFriend(3).toString());
-        Log.i(LOG_TAG, "table count: " + db.getUserCount());
+        periodicallySuggest();
+
     }
 
     //Handles back button being pressed as on a fragment it would exit the app
@@ -211,7 +227,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             case MY_PERMISSIONS_FINE_LOCATION: {
                 Log.i(LOG_TAG, "Granting permision");
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-
+                    //Check location services are turned on and updates with users current location sends alert if not.
+                    locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+                    if (!isLocationEnabled(locationManager)) {
+                        showLocationAlert();
+                    } else {
+                        locationUpdater();
+                    }
+                    // Obtain the SupportMapFragment and get notified when the map is ready to be used.
+                    SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                            .findFragmentById(R.id.map);
+                    mapFragment.getMapAsync(this);
                 } else {
 
                 }
@@ -234,7 +260,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 this.getPackageName());
         Log.i(LOG_TAG, "Perms" + hasPerm + " " + PackageManager.PERMISSION_GRANTED);
         if (hasPerm == PackageManager.PERMISSION_GRANTED) {
-            locationListener = new LocationListener() {@Override
+            locationListener = new LocationListener() {
+                @Override
             public void onLocationChanged(Location location) {
                 user.setLatitude(location.getLatitude());
                 user.setLongitude(location.getLongitude());
@@ -301,6 +328,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             public boolean onNavigationItemSelected(MenuItem menuItem) {
 
                 Fragment fragment = null;
+                String tag = "";
                 switch (menuItem.getItemId()) {
                     //As home is the activity and not a fragment, remove all fragments from view.
                     case (R.id.home):
@@ -322,24 +350,28 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     case (R.id.add_friend):
                         isMainShown = false;
                         fragment = new addfriend_Fragment();
+                        tag = "addFriendFragTag";
                         break;
                     case (R.id.view_friends):
                         isMainShown = false;
                         fragment = new listFriends();
+                        tag = "viewFriendFragTag";
                         break;
                     case (R.id.view_meetings):
                         isMainShown = false;
                         fragment = new ViewMeetings_Fragment();
+                        tag = "viewMeetingsFragTag";
                         break;
                     case (R.id.how_to):
                         isMainShown = false;
                         fragment = new howTo_Fragment();
+                        tag = "howToFragTag";
                         break;
                 }
 
                 if(fragment != null){
                     FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
-                    ft.replace(R.id.map, fragment);
+                    ft.replace(R.id.map, fragment, tag);
                     ft.commit();
                 }
                 DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawerLayout);
@@ -358,7 +390,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         uiSettings.setZoomControlsEnabled(true);
         uiSettings.setCompassEnabled(true);
         LatLng myLocation = new LatLng(-37.8136, 144.9634);
-        // Add a marker in Sydney and move the camera
+        //Move and zoom camera to melbourne
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             return;
         }
@@ -389,17 +421,36 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     double lng = latLng.longitude;
 
                     friendsList = user.getFriendsList();
+                    meetingsList = user.getMeetingList();
 
                     for(int i = 0; i < friendsList.size(); i++){
                         Friend friend = friendsList.get(i);
                         if(friend.getLatitude() == lat && friend.getLongitude() == lng){
                             friendStr = friend.getName();
                             time = friend.getTime();
+                            DateFormat dateFormat = new SimpleDateFormat("HH:mm:ss aa");
+                            tvName.setText("Name: " + friendStr);
+                            if(time != null){
+                                tvTime.setText("Time: " + dateFormat.format(time));
+                            }
+                            return view;
                         }
                     }
-                    DateFormat dateFormat = new SimpleDateFormat("HH:mm:ss aa");
-                    tvName.setText("Name: " + friendStr);
-                    tvTime.setText("Time: " + dateFormat.format(time));
+                    for(int i = 0; i < meetingsList.size(); i++){
+                        Meeting meeting = meetingsList.get(i);
+                        if(meeting.getLocation() != null){
+                            if((meeting.getLocation().latitude == lat) && (meeting.getLocation().longitude == lng)){
+                                tvName.setText(meeting.getTitle());
+                                if(meeting.getStartTime() != null){
+                                    tvTime.setText(meeting.getStartTime() + " - " + meeting.getEndTime());
+                                }else{
+                                    tvTime.setText("Unspecified Time");
+                                }
+                                return view;
+                            }
+                        }
+                    }
+
                     return view;
                 }
             });
@@ -411,7 +462,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mMap.setOnMapClickListener(new OnMapClickListener() {
             @Override
             public void onMapClick(LatLng latLng) {
-                makeMeeting(latLng, null);
+                makeMeeting(latLng);
             }
         });
     }
@@ -424,161 +475,157 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         mMap = googleMap;
         friendsList = user.getFriendsList();
+        meetingsList = user.getMeetingList();
 
-        size = friendsList.size();
-        Log.i(LOG_TAG, "Size: " + size);
-
-        while (count < size) {
+        while (count < friendsList.size()) {
             Friend friend = friendsList.get(count);
+
             lat = friend.getLatitude();
             lng = friend.getLongitude();
             mMap.addMarker(new MarkerOptions().position(new LatLng(lat, lng)));
             count++;
         }
-
+        count = 0;
+        while(count < meetingsList.size()){
+            Meeting meeting = meetingsList.get(count);
+            if(meeting.getLocation() != null){
+                mMap.addMarker(new MarkerOptions()
+                .position(meeting.getLocation())
+                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN)));
+            }
+            count++;
+        }
     }
 
     //Creates alertdialog with input for details of the meeting and then sends creates a new meeting
     //Code gets a little confusing with all the dialog boxes but works efficiently
-    private void makeMeeting(final LatLng latLng, String name){
-        boolean addMore = true;
-        final int startHour =24, startMin = 24;
+    private void makeMeeting(final LatLng latLng){
+        Double lat = latLng.latitude;
+        Double lng = latLng.longitude;
+        Fragment fragment = new addMeeting_Fragment();
+        Bundle bundle = new Bundle();
+        bundle.putDouble("lat", lat);
+        bundle.putDouble("lng", lng);
+        fragment.setArguments(bundle);
+        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+        ft.replace(R.id.map, fragment);
+        ft.commit();
+    }
 
-        AlertDialog.Builder alert = new AlertDialog.Builder(MainActivity.this);
+    @Override
+    public void onClick(View v){
+        Button button = (Button) findViewById(R.id.suggestMeetingButton);
+        if(button.getText().equals("Click to turn on auto suggestions")){
+            if(isNetworkAvailable()){
+                button.setText("Suggest Now!");
+                periodicallySuggest();
+                return;
+            }
+            else{
+                Toast.makeText(this, "Network still unavailable", Toast.LENGTH_SHORT).show();
+                return;
+            }
+        }
+        switch(v.getId()){
+            case    R.id.suggestMeetingButton:{
+                if(isNetworkAvailable()){
+                    progressDialog = new ProgressDialog(this);
+                    progressDialog.setMessage("Finding closest friend...");
+                    progressDialog.show();
+                    AsyncDistanceDemand asyncDistanceDemand = new AsyncDistanceDemand(this, null);
+                    asyncDistanceDemand.execute();
+                } else{
+                    Toast.makeText(this, "Network unavailable", Toast.LENGTH_SHORT).show();
+                }
+
+            }
+        }
+    }
+
+    private void periodicallySuggest(){
+        if(isNetworkAvailable()){
+            Timer timer = new Timer();
+            timer.schedule(new SuggestTimerTask(this), 20000);
+            timer.scheduleAtFixedRate(new SuggestTimerTask(this), 290000, 290000);
+        }
+        else {
+            Button button = (Button) findViewById(R.id.suggestMeetingButton);
+            button.setText("Click to turn on auto suggestions");
+        }
+    }
+
+    public void failedDistance(){
+        if(progressDialog != null){
+            progressDialog.dismiss();
+        }
+        Toast.makeText(MainActivity.this, "Please wait a while.", Toast.LENGTH_LONG).show();
+    }
+
+    public void onDistanceCalculated(String duration, Double distance, Friend friend, final String[] exclFriends, String location, final LatLng latLng){
+
+        final String friendID = friend.getId();
+        final String[] exclIDs = exclFriends;
+
+        if(progressDialog != null){
+            progressDialog.dismiss();
+        }
+
+        final AlertDialog.Builder alert = new AlertDialog.Builder(MainActivity.this);
 
         LinearLayout layout = new LinearLayout(MainActivity.this);
         layout.setOrientation(LinearLayout.VERTICAL);
 
-        //First dialog box with Meeting title, start and end time
-
-        alert.setTitle("Create new meeting");
-
-        final EditText title = new EditText(MainActivity.this);
-        title.setHint("Title");
-        layout.addView(title);
-
-        final EditText startTime = new EditText(MainActivity.this);
-        startTime.setOnClickListener(new View.OnClickListener() {
-
-            //When starttime edit text is clicked a clock widget appears to select the time
+        alert.setTitle("Schedule meeting?");
+        alert.setMessage("Your closest friend is " + friend.getName() + "! Would you like to meet him at " + location + "?\n" +
+        "Distance: " + distance.toString() + " km's\nWalking time: " + duration);
+        alert.setPositiveButton("Okay", new DialogInterface.OnClickListener() {
             @Override
-            public void onClick(View v) {
-                // TODO Auto-generated method stub
-                Calendar mcurrentTime = Calendar.getInstance();
-                int hour = mcurrentTime.get(Calendar.HOUR_OF_DAY);
-                int minute = mcurrentTime.get(Calendar.MINUTE);
-                TimePickerDialog mTimePicker;
-                mTimePicker = new TimePickerDialog(MainActivity.this, new TimePickerDialog.OnTimeSetListener() {
-                    @Override
-                    public void onTimeSet(TimePicker timePicker, int selectedHour, int selectedMinute) {
-                        startTime.setText( selectedHour + ":" + selectedMinute);
-                    }
-                }, hour, minute, true);//Yes 24 hour time
-                mTimePicker.setTitle("Select Time");
-                mTimePicker.show();
+            public void onClick(DialogInterface dialogInterface, int i) {
+                Fragment fragment = new addMeeting_Fragment();
+                Bundle bundle = new Bundle();
+                bundle.putDouble("lat", latLng.latitude);
+                bundle.putDouble("lng", latLng.longitude);
+                bundle.putString("friend", friendID);
+                fragment.setArguments(bundle);
+                FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+                ft.replace(R.id.map, fragment);
+                ft.commit();
             }
         });
-        startTime.setHint("Start Time");
-        startTime.setKeyListener(null);
-        layout.addView(startTime);
 
-        final EditText endTime = new EditText(MainActivity.this);
-        endTime.setOnClickListener(new View.OnClickListener() {
-
-            //When endTime edit text is clicked a clock widget appears to select the time
+        alert.setNeutralButton("Next suggestion", new DialogInterface.OnClickListener() {
             @Override
-            public void onClick(View v) {
-                // TODO Auto-generated method stub
-                Calendar mcurrentTime = Calendar.getInstance();
-                int hour = mcurrentTime.get(Calendar.HOUR_OF_DAY);
-                final int minute = mcurrentTime.get(Calendar.MINUTE);
-                TimePickerDialog mTimePicker;
-                mTimePicker = new TimePickerDialog(MainActivity.this, new TimePickerDialog.OnTimeSetListener() {
-                    @Override
-                    public void onTimeSet(TimePicker timePicker, int selectedHour, int selectedMinute) {
-                        String sTime = startTime.getText().toString();
-                        String time[] = sTime.split(":");
-
-                        int hour = Integer.parseInt(time[0]);
-                        int min = Integer.parseInt(time[1]);
-
-                        if(hour == selectedHour){
-                            if(selectedMinute > min){
-                                endTime.setText( selectedHour + ":" + selectedMinute);
-                            }
-                        }else if(selectedHour > hour){
-                            endTime.setText( selectedHour + ":" + selectedMinute);
-                        }
-                    }
-                }, hour, minute, true);//Yes 24 hour time
-                mTimePicker.setTitle("Select Time");
-                mTimePicker.show();
-
+            public void onClick(DialogInterface dialogInterface, int i) {
+                String[] excl = new String[exclFriends.length + 1];
+                int count = 0;
+                for(int j = 0; j < exclFriends.length; j++){
+                    excl[j] = exclFriends[j];
+                    count++;
+                }
+                excl[count] = friendID;
+                progressDialog = new ProgressDialog(MainActivity.this);
+                progressDialog.setMessage("Finding next closest friend...");
+                progressDialog.show();
+                AsyncDistanceDemand asyncDistanceDemand = new AsyncDistanceDemand(MainActivity.this, excl);
+                asyncDistanceDemand.execute();
             }
         });
-        endTime.setHint("End Time");
-        endTime.setKeyListener(null);
-        layout.addView(endTime);
 
-        alert.setView(layout);
-
-        //On alertdialog box 1 OK, create a 2nd dialog box to get the selected friends
-        alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int whichButton) {
-                final String mName = title.getText().toString();
-                final String sTime = startTime.getText().toString();
-                final String eTime = endTime.getText().toString();
-                if(mName.equals("")|| sTime.equals("") || eTime.equals("")){
-                    return;
-                }
-                AlertDialog.Builder alert = new AlertDialog.Builder(MainActivity.this);
-
-                //Loads all friends into a multichoice selector
-
-                final List<Friend> friendList = user.getFriendsList();
-                final ArrayList<Integer> selectedItems = new ArrayList();
-                final CharSequence[] friends = new CharSequence[friendList.size()];
-                for(int i = 0; i < friendList.size(); i++){
-                    Friend friend = friendList.get(i);
-                    friends[i] = friend.getName();
-                }
-                alert.setTitle("Select Friends");
-                alert.setMultiChoiceItems(friends, null,
-                        new DialogInterface.OnMultiChoiceClickListener() {
-                            // indexSelected contains the index of item (of which checkbox checked)
-                            @Override
-
-                            public void onClick(DialogInterface dialog, int indexSelected, boolean isChecked) {
-                                if (isChecked) {
-                                    // If the user checked the item, add it to the selected items
-                                    selectedItems.add(indexSelected);
-                                } else if (selectedItems.contains(indexSelected)) {
-                                    // Else, if the item is already in the array, remove it
-                                    selectedItems.remove(Integer.valueOf(indexSelected));
-                                }
-                            }
-                        });
-                //Finally create meeting
-                alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int whichButton) {
-                        List<Friend> meetingFriends = new LinkedList();
-                        for(int i = 0; i < selectedItems.size(); i++){
-                            meetingFriends.add(friendList.get(selectedItems.get(i)));
-                        }
-                        user.newMeeting(mName, sTime, eTime, meetingFriends, latLng);
-                    }
-                });
-
-                alert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int whichButton) {}});
-                alert.show();
-            }
-        });
         alert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int whichButton) {}});
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+            }
+        });
+
 
         alert.show();
+    }
 
+    private boolean isNetworkAvailable() {
+        ConnectivityManager connectivityManager
+                = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
 
     @Override
@@ -605,6 +652,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     protected void onPause()
     {
+        alive = false;
         Log.i(LOG_TAG, "onPause()");
         super.onPause();
     }
@@ -612,6 +660,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     protected void onStop()
     {
+        friendsList = user.getFriendsList();
+        meetingsList = user.getMeetingList();
+        for(int i = 0; i < friendsList.size(); i++){
+            db.addFriend(friendsList.get(i));
+        }
+
+        for(int i = 0; i < meetingsList.size(); i++){
+            db.addMeeting(meetingsList.get(i));
+        }
+
         Log.i(LOG_TAG, "onStop()");
         super.onStop();
     }
@@ -619,6 +677,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     protected void onDestroy()
     {
+        alive = false;
         Log.i(LOG_TAG, "onDestroy()");
         super.onDestroy();
     }

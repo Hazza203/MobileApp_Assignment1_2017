@@ -5,12 +5,14 @@ import android.content.DialogInterface;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AlertDialog;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListView;
@@ -34,7 +36,7 @@ import java.util.List;
  * Created by harry on 1/09/2017.
  */
 
-public class ViewMeetings_Fragment extends Fragment {
+public class ViewMeetings_Fragment extends Fragment implements View.OnClickListener{
 
     Model model;
     CurrentUser user;
@@ -43,6 +45,8 @@ public class ViewMeetings_Fragment extends Fragment {
     public void onViewCreated(View view, @Nullable Bundle savedInstances){
         super.onViewCreated(view, savedInstances);
         getActivity().setTitle("View Meetings");
+        Button addMeetingButton = (Button)view.findViewById(R.id.addMeetingButton);
+        addMeetingButton.setOnClickListener(this);
     }
 
     //Create the listview
@@ -52,13 +56,17 @@ public class ViewMeetings_Fragment extends Fragment {
         View view = inflater.inflate(R.layout.viewmeetings_fragment, container, false);
         final ListView meetingLV = view.findViewById(R.id.meetingLV);
 
+
+
+        model = Model.getInstance();
+        user = model.getCurrentUser();
         //Get the model and current user
         try {
-            model = Model.getInstance();
+
             Date time = DateFormat.getTimeInstance(DateFormat.MEDIUM).parse("12:00:00 PM");
             DateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
             Date dob = dateFormat.parse("01/01/1970");
-            user = model.getCurrentUser();
+
         } catch (ParseException e) {
             e.printStackTrace();
         }
@@ -99,10 +107,9 @@ public class ViewMeetings_Fragment extends Fragment {
                 final EditText title = new EditText(getContext());
                 title.setText(meeting.getTitle());
                 layout.addView(title);
-                DateFormat df = new SimpleDateFormat("HH:mm");
 
                 final EditText startTime = new EditText(getContext());
-                startTime.setText(df.format(meeting.getStartTime()));
+                startTime.setText(meeting.getStartTime());
                 startTime.setOnClickListener(new View.OnClickListener() {
 
                     //Click on start time edit text to bring up a time picker
@@ -126,7 +133,7 @@ public class ViewMeetings_Fragment extends Fragment {
                 layout.addView(startTime);
 
                 final EditText endTime = new EditText(getContext());
-                endTime.setText(df.format(meeting.getEndTime()));
+                endTime.setText(meeting.getEndTime());
                 endTime.setOnClickListener(new View.OnClickListener() {
 
                     //Click on end time edit text to bring up a time picker
@@ -240,7 +247,7 @@ public class ViewMeetings_Fragment extends Fragment {
         });
 
         //On long click listener which brings up alert dialog box to delete item
-        
+
         meetingLV.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
             public boolean onItemLongClick(AdapterView<?> adapterView, View view, final int position, long l) {
@@ -263,5 +270,21 @@ public class ViewMeetings_Fragment extends Fragment {
         });
 
         return view;
+    }
+
+    @Override
+    public void onClick(View v){
+        Bundle bundle = new Bundle();
+        bundle.putBoolean("tag", true);
+        Fragment fragment = new addMeeting_Fragment();
+        fragment.setArguments(bundle);
+        FragmentTransaction ft = getChildFragmentManager().beginTransaction();
+        ft.add(fragment, "addMeetingFrag");
+        ft.commit();
+    }
+
+    @Override
+    public void onResume(){
+        super.onResume();
     }
 }
