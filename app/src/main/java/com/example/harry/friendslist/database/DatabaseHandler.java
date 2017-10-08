@@ -131,6 +131,21 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 new String[] { String.valueOf(newMeeting.getID()) })));
         db.close();
     }
+    public void addFriendToMeeting(Meeting newMeeting) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        ContentValues meeting = new ContentValues();
+        ContentValues usermeeting = new ContentValues();
+        meeting.put("title", newMeeting.getTitle());
+        meeting.put("startTime", newMeeting.getStartTime());
+        meeting.put("endTime", newMeeting.getEndTime());
+        meeting.put("latitude", newMeeting.getLocation().latitude);
+        meeting.put("longitude", newMeeting.getLocation().longitude);
+
+        newMeeting.setID(Long.toString(db.update(TABLE_MEETING, meeting, "meetingid" + " = ?",
+                new String[] { String.valueOf(newMeeting.getID()) })));
+        db.close();
+    }
 
     public Friend getFriend(int id) {
         SQLiteDatabase db = this.getReadableDatabase();
