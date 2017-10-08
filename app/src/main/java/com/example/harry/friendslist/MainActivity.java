@@ -34,6 +34,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.TimePicker;
 
+import com.example.harry.friendslist.database.DatabaseHandler;
 import com.example.harry.friendslist.model.CurrentUser;
 import com.example.harry.friendslist.model.Friend;
 import com.example.harry.friendslist.model.Meeting;
@@ -87,7 +88,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         model = Model.getInstance();
-
+        DatabaseHandler db = new DatabaseHandler(this);
         //Login dummy user and create model
         try {
             Date time = DateFormat.getTimeInstance(DateFormat.MEDIUM).parse("12:00:00 PM");
@@ -141,7 +142,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+        SimpleDateFormat dateformat = new SimpleDateFormat("dd/MM/yyyy");
+        Date dob = null;
+        try {
+            dob = dateformat.parse("01/01/2000");
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
 
+        db.addFriend(new Friend("3","email@email.com","aname",dob));
+        Log.i(LOG_TAG, "Friend at 3 : "+ db.getFriend(3).toString());
+        Log.i(LOG_TAG, "table count: " + db.getUserCount());
     }
 
     //Handles back button being pressed as on a fragment it would exit the app
