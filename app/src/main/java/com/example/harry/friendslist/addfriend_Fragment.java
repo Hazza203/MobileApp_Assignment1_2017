@@ -36,7 +36,6 @@ import java.util.LinkedList;
 public class addfriend_Fragment extends Fragment implements
         AdapterView.OnItemClickListener {
 
-    private String LOG_TAG = this.getClass().getName();
 
     private static final String TAG = addfriend_Fragment.class.getSimpleName();
     private Model model = Model.getInstance();
@@ -48,7 +47,7 @@ public class addfriend_Fragment extends Fragment implements
 
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstances){
-        Log.i(LOG_TAG, "Add friend fragment");
+        Log.i(TAG, "Add friend fragment");
         super.onViewCreated(view, savedInstances);
         getActivity().setTitle("Add Friend from Contacts");
     }

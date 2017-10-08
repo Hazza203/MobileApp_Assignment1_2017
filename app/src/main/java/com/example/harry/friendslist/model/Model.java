@@ -13,6 +13,7 @@ import java.util.Date;
 public class Model {
 
     private static Model instance;
+    //private static DBOpenHelper db;
     private String LOG_TAG = this.getClass().getName();
     private CurrentUser currentUser;
     private Context context;
@@ -38,5 +39,10 @@ public class Model {
 
     public CurrentUser getCurrentUser(){
         return currentUser;
+    }
+
+    public void startDatabase(){
+        //DBOpenHelper.getSingletonInstance(context);
+
     }
 }

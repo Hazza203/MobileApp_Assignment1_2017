@@ -9,8 +9,10 @@ import android.os.Bundle;
 import android.util.Log;
 
 import com.example.harry.friendslist.DummyLocationService;
+import com.example.harry.friendslist.MainActivity;
 import com.example.harry.friendslist.R;
 import com.example.harry.friendslist.controller.NotificationReceiver;
+import com.example.harry.friendslist.database.DatabaseHandler;
 import com.example.harry.friendslist.interfaces.FriendInterface;
 import com.google.android.gms.maps.model.LatLng;
 
@@ -108,6 +110,7 @@ public class CurrentUser extends Friend implements FriendInterface {
 
     private void loadData(Context context){
 
+
         //Need to replace dummy_data.txt with actual friend and meeting files
         String name, mTitle, mStartTime, mEndTime, mFriendID;
         int noFriends;
@@ -133,6 +136,7 @@ public class CurrentUser extends Friend implements FriendInterface {
             name = newFriend.name;
             //Remove the digit in the name
             name = name.replaceAll("\\d","");
+
             Friend friend = new Friend(newFriend.id, name, newFriend.latitude, newFriend.longitude, newFriend.time);
             friends.add(friend);
             Log.i(LOG_TAG, "ID : " + friend.id);
