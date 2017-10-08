@@ -22,4 +22,5 @@
     <string name="updateTime">Time: </string>
     <string name="suggestMeetingbutton">Suggest Meeting</string>
     <string name="addMeetingButtontxt">Add Meeting</string>
+    <string name="notificationTitle">Friends List</string>
 </resources>

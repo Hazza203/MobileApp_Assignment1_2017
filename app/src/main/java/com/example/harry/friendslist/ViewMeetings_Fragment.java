@@ -56,6 +56,8 @@ public class ViewMeetings_Fragment extends Fragment implements View.OnClickListe
         View view = inflater.inflate(R.layout.viewmeetings_fragment, container, false);
         final ListView meetingLV = view.findViewById(R.id.meetingLV);
 
+
+
         model = Model.getInstance();
         user = model.getCurrentUser();
         //Get the model and current user

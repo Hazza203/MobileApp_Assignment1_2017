@@ -41,6 +41,7 @@ public class AsyncDistanceDemand extends AsyncTask<String, Void, String> {
     private Double minDistance = 9999999.0;
     private Double finalDistance;
     private Friend finalFriend;
+    private LatLng finalLatLng;
     private String[] friendsToExclude;
     private MainActivity mainActivity;
 
@@ -60,6 +61,9 @@ public class AsyncDistanceDemand extends AsyncTask<String, Void, String> {
         user = model.getCurrentUser();
         lat = user.getLatitude();
         lng = user.getLongitude();
+        if(user.getLongitude().toString().equals("NaN")){
+            return "failed";
+        }
         friendList = user.getFriendsList();
 
         outer:
@@ -99,6 +103,7 @@ public class AsyncDistanceDemand extends AsyncTask<String, Void, String> {
                 finalDuration = getDuration(userToMidJSON);
                 finalLocation = getLocationStr(userToMidJSON);
                 finalFriend = friend;
+                finalLatLng = new LatLng(midLat, midLng);
             }
 
             try {
@@ -196,10 +201,24 @@ public class AsyncDistanceDemand extends AsyncTask<String, Void, String> {
     }
 
     protected void onPostExecute(String result){
+        String[] nFriendsToExclude;
         if(result.equals("failed")){
             mainActivity.failedDistance();
             return;
         }
-        mainActivity.onDistanceCalculated(finalDuration,finalDistance,finalFriend, finalLocation);
+        if(friendsToExclude == null){
+            friendsToExclude = new String[1];
+            friendsToExclude[0] = finalFriend.getId();
+            mainActivity.onDistanceCalculated(finalDuration,finalDistance,finalFriend, friendsToExclude, finalLocation, finalLatLng);
+        } else {
+            nFriendsToExclude = new String[friendsToExclude.length + 1];
+            int count = 0;
+            for(int j = 0; j < friendsToExclude.length; j++){
+                nFriendsToExclude[j] = friendsToExclude[j];
+                count++;
+            }
+            nFriendsToExclude[count] = finalFriend.getId();
+            mainActivity.onDistanceCalculated(finalDuration,finalDistance,finalFriend, nFriendsToExclude, finalLocation, finalLatLng);
+        }
     }
 }

@@ -1,11 +1,16 @@
 package com.example.harry.friendslist.model;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.content.Context;
+import android.content.Intent;
 import android.content.res.Resources;
+import android.os.Bundle;
 import android.util.Log;
 
 import com.example.harry.friendslist.DummyLocationService;
 import com.example.harry.friendslist.R;
+import com.example.harry.friendslist.controller.NotificationReceiver;
 import com.example.harry.friendslist.interfaces.FriendInterface;
 import com.google.android.gms.maps.model.LatLng;
 
@@ -19,6 +24,7 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.StringTokenizer;
 
 /**
  * Created by Jay on 3/09/2017.
@@ -30,6 +36,7 @@ public class CurrentUser extends Friend implements FriendInterface {
     private String password;
     private String LOG_TAG = this.getClass().getName();
     private int meetingID = 1;
+    private Context context;
 
     private List<Friend> friends = new LinkedList<>();
     private List<Meeting> meetings = new LinkedList<>();
@@ -38,6 +45,7 @@ public class CurrentUser extends Friend implements FriendInterface {
         super(id,name,email,dob,latitude,longitude, time);
         this.userName = userName;
         this.password = password;
+        this.context = context;
         loadData(context);
     }
 
@@ -85,6 +93,7 @@ public class CurrentUser extends Friend implements FriendInterface {
     public void newMeeting(String title, String startTime, String endTime, List<Friend> friends, LatLng latLng){
         Meeting newMeeting = new Meeting(Integer.toString(meetingID), title, startTime, endTime, friends, latLng);
         meetings.add(newMeeting);
+        scheduleNotification(newMeeting);
         meetingID++;
     }
 
@@ -151,13 +160,54 @@ public class CurrentUser extends Friend implements FriendInterface {
                 lat = Double.parseDouble(scanner.next());
                 lng = Double.parseDouble(scanner.next());
                 mLatLng = new LatLng(lat, lng);
-                Meeting meeting = new Meeting(Integer.toString(meetingID), mTitle, mStartTime, mEndTime, mFriends, mLatLng);
-                meetingID++;
-                meetings.add(meeting);
+
+                newMeeting(mTitle, mStartTime, mEndTime, mFriends, mLatLng);
             }
         } catch (Resources.NotFoundException e)
         {
             Log.i(LOG_TAG, "File Not Found Exception Caught");
         }
+    }
+
+    private void scheduleNotification(Meeting meeting){
+        String meetingTime = meeting.getStartTime();
+        Long lMeetingTime, currentTime, alarmTime;
+
+        //Getting time of day in miliseconds
+        StringTokenizer st = new StringTokenizer(meetingTime, ":");
+        Log.i(LOG_TAG, "Meeting time" + meetingTime);
+        lMeetingTime = Long.parseLong(st.nextToken()) * 3600000;
+        lMeetingTime = lMeetingTime + (Long.parseLong(st.nextToken()) * 60000);
+        Log.i(LOG_TAG, "Meeting time" + lMeetingTime);
+
+        //Getting current time since midnight in miliseconds
+        Calendar c = Calendar.getInstance();
+        long now = c.getTimeInMillis();
+        c.set(Calendar.HOUR_OF_DAY, 0);
+        c.set(Calendar.MINUTE, 0);
+        c.set(Calendar.SECOND, 0);
+        c.set(Calendar.MILLISECOND, 0);
+        currentTime = now - c.getTimeInMillis();
+
+        alarmTime = lMeetingTime - currentTime;
+
+        //If meeting time has passed for the day its for tomorrow e.g meeting time is 3PM system time is 4PM
+        if(alarmTime < 0){
+            alarmTime = alarmTime + 24*60*60*1000;
+        }
+
+        if(alarmTime > 600000){
+            alarmTime = alarmTime - 600000;
+        }
+        Log.i(LOG_TAG, "meeting time: " +lMeetingTime + " ... current time: " + currentTime + " .... alarm time: " + alarmTime);
+
+        Intent intentAlarm = new Intent(context, NotificationReceiver.class);
+        intentAlarm.putExtra("name", meeting.getTitle());
+        intentAlarm.putExtra("start", meeting.getStartTime());
+        intentAlarm.putExtra("end", meeting.getEndTime());
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+
+        alarmManager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis()+alarmTime, PendingIntent.getBroadcast(context, 1, intentAlarm, PendingIntent.FLAG_UPDATE_CURRENT));
+
     }
 }
