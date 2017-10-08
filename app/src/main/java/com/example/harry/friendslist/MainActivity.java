@@ -1,10 +1,13 @@
 package com.example.harry.friendslist;
 
 import android.Manifest;
+import android.app.AlarmManager;
 import android.app.ProgressDialog;
 import android.app.TimePickerDialog;
 import android.location.Location;
 import android.location.LocationListener;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.support.v4.app.Fragment;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -37,6 +40,8 @@ import android.widget.TimePicker;
 import android.widget.Toast;
 
 import com.example.harry.friendslist.controller.AsyncDistanceDemand;
+import com.example.harry.friendslist.controller.NotificationReceiver;
+import com.example.harry.friendslist.controller.SuggestTimerTask;
 import com.example.harry.friendslist.model.CurrentUser;
 import com.example.harry.friendslist.model.Friend;
 import com.example.harry.friendslist.model.Meeting;
@@ -47,6 +52,8 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.GoogleMap.OnMapClickListener;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.UiSettings;
+import com.google.android.gms.maps.model.BitmapDescriptor;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
@@ -60,6 +67,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Timer;
 
 import static java.util.Calendar.AM;
 
@@ -80,16 +88,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private final int MY_PERMISSIONS_READ_CONTACTS = 1;
     private final int MY_PERMISSIONS_FINE_LOCATION = 2;
     private List<Friend> friendsList;
+    private List<Meeting> meetingsList;
     private boolean isMainShown = true;
     private ProgressDialog progressDialog;
 
     private Model model;
     private CurrentUser user;
+    public static boolean alive;
 
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        alive = true;
         Log.i(LOG_TAG, "onCreate()");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
@@ -150,6 +161,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         Button suggestMeetingButton = (Button)findViewById(R.id.suggestMeetingButton);
         suggestMeetingButton.setOnClickListener(this);
+
+        periodicallySuggest();
+
     }
 
     //Handles back button being pressed as on a fragment it would exit the app
@@ -402,19 +416,36 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     double lng = latLng.longitude;
 
                     friendsList = user.getFriendsList();
+                    meetingsList = user.getMeetingList();
 
                     for(int i = 0; i < friendsList.size(); i++){
                         Friend friend = friendsList.get(i);
                         if(friend.getLatitude() == lat && friend.getLongitude() == lng){
                             friendStr = friend.getName();
                             time = friend.getTime();
+                            DateFormat dateFormat = new SimpleDateFormat("HH:mm:ss aa");
+                            tvName.setText("Name: " + friendStr);
+                            if(time != null){
+                                tvTime.setText("Time: " + dateFormat.format(time));
+                            }
+                            return view;
                         }
                     }
-                    DateFormat dateFormat = new SimpleDateFormat("HH:mm:ss aa");
-                    tvName.setText("Name: " + friendStr);
-                    if(time != null){
-                        tvTime.setText("Time: " + dateFormat.format(time));
+                    for(int i = 0; i < meetingsList.size(); i++){
+                        Meeting meeting = meetingsList.get(i);
+                        if(meeting.getLocation() != null){
+                            if((meeting.getLocation().latitude == lat) && (meeting.getLocation().longitude == lng)){
+                                tvName.setText(meeting.getTitle());
+                                if(meeting.getStartTime() != null){
+                                    tvTime.setText(meeting.getStartTime() + " - " + meeting.getEndTime());
+                                }else{
+                                    tvTime.setText("Unspecified Time");
+                                }
+                                return view;
+                            }
+                        }
                     }
+
                     return view;
                 }
             });
@@ -439,11 +470,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         mMap = googleMap;
         friendsList = user.getFriendsList();
+        meetingsList = user.getMeetingList();
 
-        size = friendsList.size();
-        Log.i(LOG_TAG, "Size: " + size);
-
-        while (count < size) {
+        while (count < friendsList.size()) {
             Friend friend = friendsList.get(count);
 
             lat = friend.getLatitude();
@@ -451,7 +480,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             mMap.addMarker(new MarkerOptions().position(new LatLng(lat, lng)));
             count++;
         }
-
+        count = 0;
+        while(count < meetingsList.size()){
+            Meeting meeting = meetingsList.get(count);
+            if(meeting.getLocation() != null){
+                mMap.addMarker(new MarkerOptions()
+                .position(meeting.getLocation())
+                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN)));
+            }
+            count++;
+        }
     }
 
     //Creates alertdialog with input for details of the meeting and then sends creates a new meeting
@@ -471,25 +509,61 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public void onClick(View v){
+        Button button = (Button) findViewById(R.id.suggestMeetingButton);
+        if(button.getText().equals("Click to turn on auto suggestions")){
+            if(isNetworkAvailable()){
+                button.setText("Suggest Now!");
+                periodicallySuggest();
+                return;
+            }
+            else{
+                Toast.makeText(this, "Network still unavailable", Toast.LENGTH_SHORT).show();
+                return;
+            }
+        }
         switch(v.getId()){
             case    R.id.suggestMeetingButton:{
-                progressDialog = new ProgressDialog(this);
-                progressDialog.setMessage("Finding closest friend...");
-                progressDialog.show();
-                AsyncDistanceDemand asyncDistanceDemand = new AsyncDistanceDemand(this, null);
-                asyncDistanceDemand.execute();
+                if(isNetworkAvailable()){
+                    progressDialog = new ProgressDialog(this);
+                    progressDialog.setMessage("Finding closest friend...");
+                    progressDialog.show();
+                    AsyncDistanceDemand asyncDistanceDemand = new AsyncDistanceDemand(this, null);
+                    asyncDistanceDemand.execute();
+                } else{
+                    Toast.makeText(this, "Network unavailable", Toast.LENGTH_SHORT).show();
+                }
+
             }
         }
     }
 
+    private void periodicallySuggest(){
+        if(isNetworkAvailable()){
+            Timer timer = new Timer();
+            timer.schedule(new SuggestTimerTask(this), 20000);
+            timer.scheduleAtFixedRate(new SuggestTimerTask(this), 290000, 290000);
+        }
+        else {
+            Button button = (Button) findViewById(R.id.suggestMeetingButton);
+            button.setText("Click to turn on auto suggestions");
+        }
+    }
+
     public void failedDistance(){
-        progressDialog.dismiss();
+        if(progressDialog != null){
+            progressDialog.dismiss();
+        }
         Toast.makeText(MainActivity.this, "Please wait a while.", Toast.LENGTH_LONG).show();
     }
 
-    public void onDistanceCalculated(String duration, Double distance, Friend friend, String location){
+    public void onDistanceCalculated(String duration, Double distance, Friend friend, final String[] exclFriends, String location, final LatLng latLng){
 
-        progressDialog.dismiss();
+        final String friendID = friend.getId();
+        final String[] exclIDs = exclFriends;
+
+        if(progressDialog != null){
+            progressDialog.dismiss();
+        }
 
         final AlertDialog.Builder alert = new AlertDialog.Builder(MainActivity.this);
 
@@ -502,14 +576,33 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         alert.setPositiveButton("Okay", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialogInterface, int i) {
-
+                Fragment fragment = new addMeeting_Fragment();
+                Bundle bundle = new Bundle();
+                bundle.putDouble("lat", latLng.latitude);
+                bundle.putDouble("lng", latLng.longitude);
+                bundle.putString("friend", friendID);
+                fragment.setArguments(bundle);
+                FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+                ft.replace(R.id.map, fragment);
+                ft.commit();
             }
         });
 
         alert.setNeutralButton("Next suggestion", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialogInterface, int i) {
-
+                String[] excl = new String[exclFriends.length + 1];
+                int count = 0;
+                for(int j = 0; j < exclFriends.length; j++){
+                    excl[j] = exclFriends[j];
+                    count++;
+                }
+                excl[count] = friendID;
+                progressDialog = new ProgressDialog(MainActivity.this);
+                progressDialog.setMessage("Finding next closest friend...");
+                progressDialog.show();
+                AsyncDistanceDemand asyncDistanceDemand = new AsyncDistanceDemand(MainActivity.this, excl);
+                asyncDistanceDemand.execute();
             }
         });
 
@@ -521,6 +614,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
         alert.show();
+    }
+
+    private boolean isNetworkAvailable() {
+        ConnectivityManager connectivityManager
+                = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
 
     @Override
@@ -547,6 +647,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     protected void onPause()
     {
+        alive = false;
         Log.i(LOG_TAG, "onPause()");
         super.onPause();
     }
@@ -554,6 +655,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     protected void onStop()
     {
+        alive = false;
         Log.i(LOG_TAG, "onStop()");
         super.onStop();
     }
@@ -561,6 +663,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     protected void onDestroy()
     {
+        alive = false;
         Log.i(LOG_TAG, "onDestroy()");
         super.onDestroy();
     }

@@ -18,7 +18,6 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TimePicker;
-import android.widget.Toast;
 
 import com.example.harry.friendslist.model.CurrentUser;
 import com.example.harry.friendslist.model.Friend;
@@ -39,6 +38,7 @@ public class addMeeting_Fragment extends Fragment {
     private Double lat;
     private Double lng;
     private Boolean fromFrag = false;
+    private String friend;
     private LatLng latLng;
 
 
@@ -55,12 +55,16 @@ public class addMeeting_Fragment extends Fragment {
                              @Nullable ViewGroup container, @Nullable Bundle savedInstanceState){
 
         View view = inflater.inflate(R.layout.addmeeting_fragment, container, false);
-        if(getArguments().size() > 1){
+        if(getArguments().size() == 2){
             lat = getArguments().getDouble("lat");
             lng = getArguments().getDouble("lng");
             latLng = new LatLng(lat, lng);
         }else if (getArguments().size() == 1){
             fromFrag = getArguments().getBoolean("tag");
+        }else if (getArguments().size() == 3){
+            lat = getArguments().getDouble("lat");
+            lng = getArguments().getDouble("lng");
+            friend = getArguments().getString("friend");
         }
         return view;
     }
@@ -165,9 +169,14 @@ public class addMeeting_Fragment extends Fragment {
                 final CharSequence[] friends = new CharSequence[friendList.size()];
                 for(int i = 0; i < friendList.size(); i++){
                     Friend friend = friendList.get(i);
+                    if(getArguments().size() > 3){
+                        if(friend.getId() == getArguments().getString("friend")){
+                            continue;
+                        }
+                    }
                     friends[i] = friend.getName();
                 }
-                alert.setTitle("Select Friends");
+                alert.setTitle("Add Friends!");
                 alert.setMultiChoiceItems(friends, null,
                         new DialogInterface.OnMultiChoiceClickListener() {
                             // indexSelected contains the index of item (of which checkbox checked)
