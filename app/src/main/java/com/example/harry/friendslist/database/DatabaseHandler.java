@@ -8,10 +8,12 @@ import android.database.sqlite.SQLiteOpenHelper;
 
 import com.example.harry.friendslist.model.Friend;
 import com.example.harry.friendslist.model.Meeting;
+import com.google.android.gms.maps.model.LatLng;
 
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -34,13 +36,9 @@ public class DatabaseHandler extends SQLiteOpenHelper {
 
     protected static final String TABLE_MEETING = "tbl_meetings";
 
-    protected static final String TABLE_USERFRIEND = "tbl_userfriends";
-
     protected static final String TABLE_USERMEETING = "tbl_usermeetings";
 
-    protected static final String TABLE_LOCATION = "tbl_location";
-
-    protected static final String CREATE_USER_TABLE = "CREATE TABLE "+TABLE_USER+" (userid INTEGER PRIMARY KEY AUTOINCREMENT , name TEXT, email TEXT, dob DATE);";
+    protected static final String CREATE_USER_TABLE = "CREATE TABLE "+TABLE_USER+" (userid INTEGER PRIMARY KEY AUTOINCREMENT , name TEXT, email TEXT, dob DATE, latitude DOUBLE, longitude DOUBLE);";
 
     protected static final String CREATE_MEETING_TABLE = "CREATE TABLE "+TABLE_MEETING+" (meetingid INTEGER PRIMARY KEY AUTOINCREMENT , title TEXT, startTime TEXT, endTime TEXT, latitude DOUBLE, longitude DOUBLE);";
 
@@ -74,7 +72,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         values.put("name", newUser.getName());
         values.put("email", newUser.getEmail());
         values.put("dob", DateFormat.getInstance().format(newUser.getBirthday()));
-        values.put("lat", newUser.getLatitude());
+        values.put("latitude", newUser.getLatitude());
+        values.put("longitude", newUser.getLongitude());
 
         // Inserting Row
         db.insert(TABLE_USER, null, values);
@@ -153,10 +152,78 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         } catch (ParseException e) {
             e.printStackTrace();
         }
+
         Friend returnFriend = new Friend(cursor.getString(0),
-                cursor.getString(1), cursor.getString(2), dob);
+                cursor.getString(1), Double.parseDouble(cursor.getString(4)),Double.parseDouble(cursor.getString(5)),dob);
 
         return returnFriend;
+    }
+
+    public List<Friend> getAllFriends() {
+        List<Friend> friendList = new ArrayList<Friend>();
+        // Select All Query
+        String selectQuery = "SELECT  * FROM " + TABLE_USER;
+
+        SQLiteDatabase db = this.getWritableDatabase();
+        Cursor cursor = db.rawQuery(selectQuery, null);
+
+        // looping through all rows and adding to list
+        if (cursor.moveToFirst()) {
+            do {
+                SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
+                Date dob = null;
+                try {
+                    dob = dateFormat.parse(cursor.getString(3));
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
+                Friend newFriend = new Friend(
+                    cursor.getString(0),
+                    cursor.getString(1),
+                    Double.parseDouble(cursor.getString(4)),
+                    Double.parseDouble(cursor.getString(5)), dob
+                );
+
+                friendList.add(newFriend);
+            } while (cursor.moveToNext());
+        }
+
+        // return contact list
+        return friendList;
+    }
+    public List<Meeting> getAllMeetings() {
+        List<Meeting> meetingList = new ArrayList<Meeting>();
+        List<Friend> friendsList = new ArrayList<Friend>();
+        // Select All Query
+        String selectQueryUm = "SELECT  * FROM " + TABLE_USERMEETING;
+        String selectQueryU = "SELECT  * FROM " + TABLE_MEETING;
+
+        SQLiteDatabase db = this.getWritableDatabase();
+        Cursor cursorUM = db.rawQuery(selectQueryUm, null);
+        Cursor cursorU = db.rawQuery(selectQueryU, null);
+
+        // looping through all rows and adding to list
+        if (cursorU.moveToFirst()) {
+            do {
+                if (cursorUM.moveToFirst()) {
+                    do {
+                        if (cursorU.getString(0).equals(cursorUM.getString(1))) {
+                            friendsList.add(getFriend(Integer.parseInt(cursorUM.getString(0))));
+                        }
+                    } while (cursorUM.moveToNext());
+                }
+                Meeting newMeeting = new Meeting(
+                        cursorU.getString(0), cursorU.getString(1),
+                        cursorU.getString(2), cursorU.getString(3),
+                        friendsList,
+                        new LatLng(Double.parseDouble(cursorU.getString(4)),
+                                Double.parseDouble(cursorU.getString(5)))
+                );
+                meetingList.add(newMeeting);
+            } while (cursorU.moveToNext());
+        }
+        // return contact list
+        return meetingList;
     }
 
     public int getUserCount() {

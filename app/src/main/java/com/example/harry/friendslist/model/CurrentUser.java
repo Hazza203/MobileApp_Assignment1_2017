@@ -98,6 +98,12 @@ public class CurrentUser extends Friend implements FriendInterface {
         scheduleNotification(newMeeting);
         meetingID++;
     }
+    public void createMeetings(List<Meeting> theMeetings){
+        meetings = theMeetings;
+    }
+    public void createFriends(List<Friend> theFriends){
+        friends = theFriends;
+    }
 
     public void removeMeeting(String id){
         for(int i = 0; i < meetings.size(); i++){

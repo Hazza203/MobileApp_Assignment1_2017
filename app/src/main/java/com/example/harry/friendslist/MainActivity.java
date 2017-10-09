@@ -623,6 +623,22 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private void loadFromDatabase(){
         DatabaseHandler db = new DatabaseHandler(this);
+        if(db.getUserCount()>0){
+
+            try{
+                Date time = DateFormat.getTimeInstance(DateFormat.MEDIUM).parse("12:00:00 PM");
+                DateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
+                Date dob = dateFormat.parse("01/01/1970");
+                model.setCurrentUserString("1", "userName", "Pass1234", "Test User", "test@test", dob, time, MainActivity.this);
+            }catch (ParseException e) {
+                e.printStackTrace();
+            }
+        }else{
+            Friend curr = db.getFriend(0);
+            model.setCurrentUserString(curr.getId(), "userName", "Pass1234", curr.getName(), curr.getEmail(), curr.getBirthday(),curr.getTime(),MainActivity.this);
+            model.getCurrentUser().createFriends(db.getAllFriends());
+            model.getCurrentUser().createMeetings(db.getAllMeetings());
+        }
     }
 
     private void dropDatabase(){
@@ -632,6 +648,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private void updateDatabase(){
         DatabaseHandler db = new DatabaseHandler(this);
+        Friend curr = model.getCurrentUser();
+        db.addFriend(new Friend(curr.getId(),curr.getName(), curr.getEmail(),
+                curr.getBirthday(),curr.getLatitude(),curr.getLongitude()));
+        for(int i = 1; i < model.getCurrentUser().getFriendsList().size(); i++){
+            Friend newFriend = model.getCurrentUser().getFriendsList().get(i);
+            db.addFriend(newFriend);
+        }
+        for(int i = 1; i < model.getCurrentUser().getMeetingList().size(); i++){
+            Meeting newMeeting = model.getCurrentUser().getMeetingList().get(i);
+            db.addMeeting(newMeeting);
+        }
     }
 
     private boolean isNetworkAvailable() {
