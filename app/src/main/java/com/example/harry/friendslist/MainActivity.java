@@ -621,6 +621,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         alert.show();
     }
 
+    private void loadFromDatabase(){
+        DatabaseHandler db = new DatabaseHandler(this);
+    }
+
+    private void dropDatabase(){
+        DatabaseHandler db = new DatabaseHandler(this);
+        db.dropDatabase();
+    }
+
+    private void updateDatabase(){
+        DatabaseHandler db = new DatabaseHandler(this);
+    }
+
     private boolean isNetworkAvailable() {
         ConnectivityManager connectivityManager
                 = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);

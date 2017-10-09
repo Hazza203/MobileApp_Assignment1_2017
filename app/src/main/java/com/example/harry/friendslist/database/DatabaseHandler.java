@@ -46,29 +46,11 @@ public class DatabaseHandler extends SQLiteOpenHelper {
 
     protected static final String CREATE_USERMEETING_TABLE = "CREATE TABLE "+TABLE_USERMEETING+" (userid INTEGER NOT NULL CONSTRAINT userid REFERENCES tbl_users(userid) ON DELETE CASCADE, meetingid INTEGER NOT NULL CONSTRAINT meetingid REFERENCES tbl_meetings(meetingid) ON DELETE CASCADE, PRIMARY KEY (userid,meetingid));";
 
-    protected static final String CREATE_USERFRIEND_TABLE = "CREATE TABLE "+TABLE_USERFRIEND+" (userid INTEGER NOT NULL CONSTRAINT userid REFERENCES tbl_users(userid) ON DELETE CASCADE, friendid INTEGER NOT NULL CONSTRAINT userid REFERENCES tbl_users(userid) ON DELETE CASCADE, PRIMARY KEY (userid,friendid));";
-
-    protected static final String CREATE_LOCATION_TABLE = "CREATE TABLE "+TABLE_LOCATION+" (locationid INTEGER PRIMARY KEY AUTOINCREMENT, userid INTEGER NOT NULL CONSTRAINT userid REFERENCES tbl_users(userid) ON DELETE CASCADE, latitude DOUBLE, longitude DOUBLE));";
-
     protected static final String DROP_TABLE_USER = "DROP TABLE tbl_users";
 
     protected static final String DROP_TABLE_MEETING = "DROP TABLE tbl_meetings";
 
     protected static final String DROP_TABLE_USERFRIEND = "DROP TABLE tbl_userfriends";
-
-    protected static final String DROP_TABLE_USERMEETING = "DROP TABLE tbl_usermeetings";
-
-    protected static final String DROP_TABLE_LOCATION = "DROP TABLE tbl_location";
-
-    // Caspar: The following is no longer true as of Android 2.2 (see
-    // http://www.sqlite.org/lang.html)
-    // Using triggers to enforce foreign key constraint, because Sqlite doesn't
-    // enforce them
-    private static final String CREATE_TRIGGER_ADD = "CREATE TRIGGER fk_insert_book BEFORE INSERT ON tbl_books FOR EACH ROW BEGIN  SELECT RAISE(ROLLBACK, 'insert on table \"tbl_books\" violates foreign key constraint \"fk_authorid\"') WHERE  (SELECT id FROM tbl_authors WHERE id = NEW.authorid) IS NULL; END;";
-
-    private static final String CREATE_TRIGGER_UPDATE = "CREATE TRIGGER fk_update_book BEFORE UPDATE ON tbl_books FOR EACH ROW BEGIN SELECT RAISE(ROLLBACK, 'update on table \"tbl_books\" violates foreign key constraint \"fk_authorid\"') WHERE  (SELECT id FROM tbl_authors WHERE id = NEW.authorid) IS NULL; END;";
-
-    private static final String CREATE_TRIGGER_DELETE = "CREATE TRIGGER fk_delete_author BEFORE DELETE ON tbl_authors FOR EACH ROW BEGIN SELECT RAISE(ROLLBACK, 'delete on table \"tbl_authors\" violates foreign key constraint \"fk_authorid\"') WHERE (SELECT authorid FROM tbl_books WHERE authorid = OLD.id) IS NOT NULL; END;";
 
     public DatabaseHandler(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -78,8 +60,6 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         db.execSQL(CREATE_USER_TABLE);
         db.execSQL(CREATE_MEETING_TABLE);
         db.execSQL(CREATE_USERMEETING_TABLE);
-        db.execSQL(CREATE_USERFRIEND_TABLE);
-        //db.execSQL(CREATE_LOCATION_TABLE);
     }
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         // This database is only a cache for online data, so its upgrade policy is
@@ -133,6 +113,14 @@ public class DatabaseHandler extends SQLiteOpenHelper {
 
         newMeeting.setID(Long.toString(db.update(TABLE_MEETING, meeting, "meetingid" + " = ?",
                 new String[] { String.valueOf(newMeeting.getID()) })));
+        db.close();
+    }
+    public void dropDatabase(){
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.execSQL(DROP_TABLE_USERFRIEND);
+        db.execSQL(DROP_TABLE_USER);
+        db.execSQL(DROP_TABLE_MEETING);
+
         db.close();
     }
     public void addFriendToMeeting(Meeting newMeeting) {
