@@ -65,4 +65,12 @@ public class Friend extends FriendsAbstract implements FriendInterface{
         this.longitude = longitude;
         this.time = time;
     }
+    public Friend(String id, String name,String email, Date dob, Double latitude, Double longitude){
+        this.id = id;
+        this.name = name;
+        this.email = email;
+        this.dob = dob;
+        this.latitude = latitude;
+        this.longitude = longitude;
+    }
 }

@@ -37,18 +37,20 @@ public class CurrentUser extends Friend implements FriendInterface {
     private String userName;
     private String password;
     private String LOG_TAG = this.getClass().getName();
-    private int meetingID = 1;
+    private int meetingID = 0;
     private Context context;
+    private DatabaseHandler db;
+    private int friendsID = 0;
 
     private List<Friend> friends = new LinkedList<>();
     private List<Meeting> meetings = new LinkedList<>();
 
-    public CurrentUser(String id,String userName, String password, String name, String email, Date dob, Double latitude, Double longitude, Date time, Context context){
+    public CurrentUser(String id,String userName, String password, String name, String email, Date dob, Double latitude, Double longitude, Date time, Context context, DatabaseHandler db){
         super(id,name,email,dob,latitude,longitude, time);
         this.userName = userName;
         this.password = password;
         this.context = context;
-        loadData(context);
+        this.db = db;
     }
 
     public void setUsername(String userName){
@@ -66,19 +68,14 @@ public class CurrentUser extends Friend implements FriendInterface {
         }
         return false;
     }
-    public void addAFriend(String id, String name,String email, Date dob){
+
+    public void addAFriend(String name,String email, Date dob){
         Friend newFriend = new Friend(id,name,email,dob);
         if(!friends.contains(newFriend))
             friends.add(newFriend);
+        friendsID++;
     }
 
-    //Adding a new friend via friend returned from dummylocationservices
-    public void addAFriend(String id, String name, Double lat, Double lng, Date time){
-        final Friend newFriend = new Friend(id, name, lat, lng, time);
-            if(!friends.contains(newFriend)) {
-                friends.add(newFriend);
-            }
-    }
     public void removeAFriend(String id){
         for(int i = 0; i < friends.size(); i++){
             if(friends.get(i).getId().equals(id)){
@@ -95,8 +92,17 @@ public class CurrentUser extends Friend implements FriendInterface {
     public void newMeeting(String title, String startTime, String endTime, List<Friend> friends, LatLng latLng){
         Meeting newMeeting = new Meeting(Integer.toString(meetingID), title, startTime, endTime, friends, latLng);
         meetings.add(newMeeting);
+        db.addMeeting(newMeeting);
         scheduleNotification(newMeeting);
         meetingID++;
+    }
+
+    public void createMeetings(List<Meeting> theMeetings){
+        meetings = theMeetings;
+    }
+
+    public void createFriends(List<Friend> theFriends){
+        friends = theFriends;
     }
 
     public void removeMeeting(String id){
@@ -108,10 +114,41 @@ public class CurrentUser extends Friend implements FriendInterface {
         }
     }
 
-    private void loadData(Context context){
+    public void loadFromDB(){
+
+        List<Friend> mFriends = new LinkedList<>();
+        DummyLocationService dummyLocationService = DummyLocationService.getSingletonInstance(context);
+
+        //Setting time to the latter of the provided times
+        Calendar cal = Calendar.getInstance();
+        cal.set(Calendar.HOUR_OF_DAY, 9);
+        cal.set(Calendar.MINUTE, 49);
+        cal.set(Calendar.SECOND, 0);
+        Date date = new Date();
+        date = cal.getTime();
+
+        List<DummyLocationService.FriendLocation> matched = dummyLocationService
+                .getFriendLocationsForTime(date, 2, 0);
+
+        friends = db.getAllFriends();
+        meetings = db.getAllMeetings();
+        meetingID = friends.size();
+        friendsID = friends.size();
+
+        for(int i = 0; i < matched.size(); i++){
+            Friend friend = friends.get(i);
+            if(friend.getTime() != matched.get(i).time){
+                DummyLocationService.FriendLocation updateFriend = matched.get(i);
+                Friend friend1 = new Friend(updateFriend.id, updateFriend.id, updateFriend.latitude, updateFriend.longitude, updateFriend.time);
+                db.updateFriend(friend1);
+                friends.set(i, friend1);
+            }
+        }
+    }
+
+    public void loadFirstTime(Context context){
 
 
-        //Need to replace dummy_data.txt with actual friend and meeting files
         String name, mTitle, mStartTime, mEndTime, mFriendID;
         int noFriends;
         Double lat, lng;
@@ -139,6 +176,7 @@ public class CurrentUser extends Friend implements FriendInterface {
 
             Friend friend = new Friend(newFriend.id, name, newFriend.latitude, newFriend.longitude, newFriend.time);
             friends.add(friend);
+            db.addFriend(friend);
             Log.i(LOG_TAG, "ID : " + friend.id);
             Log.i(LOG_TAG, "LAT : " + friend.latitude);
         }
