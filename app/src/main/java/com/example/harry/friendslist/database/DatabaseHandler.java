@@ -38,7 +38,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
 
     protected static final String TABLE_USERMEETING = "tbl_usermeetings";
 
-    protected static final String CREATE_USER_TABLE = "CREATE TABLE "+TABLE_USER+" (userid INTEGER PRIMARY KEY AUTOINCREMENT , name TEXT, email TEXT, dob DATE, latitude DOUBLE, longitude DOUBLE);";
+    protected static final String CREATE_USER_TABLE = "CREATE TABLE "+TABLE_USER+" (userid INTEGER PRIMARY KEY , name TEXT, email TEXT, dob DATE, latitude DOUBLE, longitude DOUBLE);";
 
     protected static final String CREATE_MEETING_TABLE = "CREATE TABLE "+TABLE_MEETING+" (meetingid INTEGER PRIMARY KEY AUTOINCREMENT , title TEXT, startTime TEXT, endTime TEXT, latitude DOUBLE, longitude DOUBLE);";
 
@@ -48,7 +48,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
 
     protected static final String DROP_TABLE_MEETING = "DROP TABLE tbl_meetings";
 
-    protected static final String DROP_TABLE_USERFRIEND = "DROP TABLE tbl_userfriends";
+    protected static final String DROP_TABLE_USERMEETING = "DROP TABLE tbl_usermeetings";
 
     public DatabaseHandler(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -65,10 +65,16 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         //db.execSQL(SQL_DELETE_ENTRIES);
         //onCreate(db);
     }
+
+    public void createTables(){
+        SQLiteDatabase db = this.getWritableDatabase();
+        onCreate(db);
+    }
     public void addFriend(Friend newUser) {
         SQLiteDatabase db = this.getWritableDatabase();
 
         ContentValues values = new ContentValues();
+        values.put("userid", newUser.getId());
         values.put("name", newUser.getName());
         values.put("email", newUser.getEmail());
         values.put("dob", DateFormat.getInstance().format(newUser.getBirthday()));
@@ -95,7 +101,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         for ( int i =0; i < invited.size(); i++ ) {
             usermeeting.put("userid", Integer.parseInt(invited.get(i).getId()));
             usermeeting.put("meetingid", Integer.parseInt(newMeeting.getID()));
-            db.insert(TABLE_USERMEETING, null, meeting);
+            db.insert(TABLE_USERMEETING, null, usermeeting);
         }
         db.close();
     }
@@ -114,9 +120,23 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 new String[] { String.valueOf(newMeeting.getID()) })));
         db.close();
     }
+
+    public void updateFriend(Friend friendUpdate){
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        ContentValues friend = new ContentValues();
+        friend.put("name", friendUpdate.getName());
+        friend.put("email", friendUpdate.getEmail());
+        friend.put("dob", DateFormat.getInstance().format(friendUpdate.getBirthday()));
+        friend.put("latitude", friendUpdate.getLatitude());
+        friend.put("longitude", friendUpdate.getLongitude());
+        friendUpdate.setId(Long.toString(db.update(TABLE_USER, friend, "userid" + " = ?",
+                new String[] {String.valueOf(friendUpdate.getId())})));
+        db.close();
+    }
     public void dropDatabase(){
         SQLiteDatabase db = this.getWritableDatabase();
-        db.execSQL(DROP_TABLE_USERFRIEND);
+        db.execSQL(DROP_TABLE_USERMEETING);
         db.execSQL(DROP_TABLE_USER);
         db.execSQL(DROP_TABLE_MEETING);
 
@@ -141,21 +161,26 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     public Friend getFriend(int id) {
         SQLiteDatabase db = this.getReadableDatabase();
 
-        Cursor cursor = db.query(TABLE_USER, new String[] { "*" }, "userid" + "=?",
-                new String[] { String.valueOf(id) }, null, null, null, null);
-        if (cursor != null)
-            cursor.moveToFirst();
+        Cursor cursor = db.query(TABLE_USER, new String[] { "*" }, " userid" + "=" + Integer.toString(id),
+                 null, null, null, null);
+        if (cursor == null){
+            return null;
+        }
+        cursor.moveToFirst();
         SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
-        Date dob = null;
+        Date dob = new Date();
         try {
-            dob = dateFormat.parse(cursor.getString(3));
+            dob = dateFormat.parse(cursor.getString(2));
         } catch (ParseException e) {
             e.printStackTrace();
         }
+        if(cursor.getDouble(4) == Double.NaN){
 
+        }
         Friend returnFriend = new Friend(cursor.getString(0),
-                cursor.getString(1), Double.parseDouble(cursor.getString(4)),Double.parseDouble(cursor.getString(5)),dob);
+                cursor.getString(1), cursor.getDouble(4), cursor.getDouble(5),dob);
 
+        db.close();
         return returnFriend;
     }
 
@@ -169,6 +194,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
 
         // looping through all rows and adding to list
         if (cursor.moveToFirst()) {
+            cursor.moveToNext();
             do {
                 SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
                 Date dob = null;
@@ -178,7 +204,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                     e.printStackTrace();
                 }
                 Friend newFriend = new Friend(
-                    cursor.getString(0),
+                    Integer.toString(cursor.getInt(0)),
                     cursor.getString(1),
                     Double.parseDouble(cursor.getString(4)),
                     Double.parseDouble(cursor.getString(5)), dob
@@ -188,6 +214,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
             } while (cursor.moveToNext());
         }
 
+        db.close();
         // return contact list
         return friendList;
     }
@@ -222,11 +249,12 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 meetingList.add(newMeeting);
             } while (cursorU.moveToNext());
         }
+        db.close();
         // return contact list
         return meetingList;
     }
 
-    public int getUserCount() {
+    public int getUserCount() {;
         int count;
 
         String countQuery = "SELECT  * FROM " + TABLE_USER;
@@ -235,6 +263,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         count = cursor.getCount();
         cursor.close();
 
+        db.close();
         return count;
     }
 }

@@ -61,9 +61,13 @@ public class addMeeting_Fragment extends Fragment {
             latLng = new LatLng(lat, lng);
         }else if (getArguments().size() == 1){
             fromFrag = getArguments().getBoolean("tag");
+            lat = -37.8136;
+            lng = 144.9631;
+            latLng = new LatLng(lat, lng);
         }else if (getArguments().size() == 3){
             lat = getArguments().getDouble("lat");
             lng = getArguments().getDouble("lng");
+            latLng = new LatLng(lat, lng);
             friend = getArguments().getString("friend");
         }
         return view;

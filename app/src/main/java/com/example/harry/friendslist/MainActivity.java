@@ -109,18 +109,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         model = Model.getInstance();
         db = new DatabaseHandler(this);
 
-
-        //Login dummy user and create model
-        try {
-            Date time = DateFormat.getTimeInstance(DateFormat.MEDIUM).parse("12:00:00 PM");
-            DateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
-            Date dob = dateFormat.parse("01/01/1970");
-            model.setCurrentUserString("1", "userName", "Pass1234", "Test User", "test@test", dob, time, MainActivity.this);
-            user = model.getCurrentUser();
-            db.addFriend(new Friend("1","email@email.com","Test User",dob));
-        } catch (ParseException e) {
-            e.printStackTrace();
-        }
+        loadFromDatabase();
+        user = model.getCurrentUser();
 
         // Get Permissions
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -621,42 +611,49 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         alert.show();
     }
 
+
     private void loadFromDatabase(){
         DatabaseHandler db = new DatabaseHandler(this);
         if(db.getUserCount()>0){
-
+            Log.i(LOG_TAG, Integer.toString(db.getUserCount()));
+            Friend curr = db.getFriend(0);
+            if(curr == null){
+                Log.i(LOG_TAG, "USER IS NULL");
+            }
+            model.setCurrentUserString(curr.getId(), "userName", "Pass1234", curr.getName(), curr.getEmail(), curr.getBirthday(),curr.getTime(),MainActivity.this, db);
+            model.getCurrentUser().createFriends(db.getAllFriends());
+            model.getCurrentUser().createMeetings(db.getAllMeetings());
+        }else{
             try{
                 Date time = DateFormat.getTimeInstance(DateFormat.MEDIUM).parse("12:00:00 PM");
                 DateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
                 Date dob = dateFormat.parse("01/01/1970");
-                model.setCurrentUserString("1", "userName", "Pass1234", "Test User", "test@test", dob, time, MainActivity.this);
+                model.setCurrentUserString("0", "userName", "Pass1234", "Test User", "test@test", dob, time, MainActivity.this, db);
+                user = model.getCurrentUser();
+                db.addFriend(user);
+                user.loadFirstTime(this);
             }catch (ParseException e) {
                 e.printStackTrace();
             }
-        }else{
-            Friend curr = db.getFriend(0);
-            model.setCurrentUserString(curr.getId(), "userName", "Pass1234", curr.getName(), curr.getEmail(), curr.getBirthday(),curr.getTime(),MainActivity.this);
-            model.getCurrentUser().createFriends(db.getAllFriends());
-            model.getCurrentUser().createMeetings(db.getAllMeetings());
         }
     }
 
     private void dropDatabase(){
-        DatabaseHandler db = new DatabaseHandler(this);
         db.dropDatabase();
     }
 
     private void updateDatabase(){
         DatabaseHandler db = new DatabaseHandler(this);
-        Friend curr = model.getCurrentUser();
+        db.createTables();
+        Friend curr = user;
         db.addFriend(new Friend(curr.getId(),curr.getName(), curr.getEmail(),
                 curr.getBirthday(),curr.getLatitude(),curr.getLongitude()));
-        for(int i = 1; i < model.getCurrentUser().getFriendsList().size(); i++){
-            Friend newFriend = model.getCurrentUser().getFriendsList().get(i);
+        for(int i = 0; i < user.getFriendsList().size(); i++){
+            Friend newFriend = user.getFriendsList().get(i);
             db.addFriend(newFriend);
         }
-        for(int i = 1; i < model.getCurrentUser().getMeetingList().size(); i++){
-            Meeting newMeeting = model.getCurrentUser().getMeetingList().get(i);
+        for(int i = 0; i < user.getMeetingList().size(); i++){
+            Meeting newMeeting = user.getMeetingList().get(i);
             db.addMeeting(newMeeting);
         }
     }
@@ -692,7 +689,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     protected void onPause()
     {
-        alive = false;
         Log.i(LOG_TAG, "onPause()");
         super.onPause();
     }
@@ -700,16 +696,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     protected void onStop()
     {
-        friendsList = user.getFriendsList();
-        meetingsList = user.getMeetingList();
-        for(int i = 0; i < friendsList.size(); i++){
-            db.addFriend(friendsList.get(i));
-        }
-
-        for(int i = 0; i < meetingsList.size(); i++){
-            db.addMeeting(meetingsList.get(i));
-        }
-
+        dropDatabase();
+        updateDatabase();
         Log.i(LOG_TAG, "onStop()");
         super.onStop();
     }
