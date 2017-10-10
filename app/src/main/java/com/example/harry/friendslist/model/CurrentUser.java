@@ -37,9 +37,10 @@ public class CurrentUser extends Friend implements FriendInterface {
     private String userName;
     private String password;
     private String LOG_TAG = this.getClass().getName();
-    private int meetingID = 1;
+    private int meetingID = 0;
     private Context context;
     private DatabaseHandler db;
+    private int friendsID = 0;
 
     private List<Friend> friends = new LinkedList<>();
     private List<Meeting> meetings = new LinkedList<>();
@@ -67,19 +68,14 @@ public class CurrentUser extends Friend implements FriendInterface {
         }
         return false;
     }
-    public void addAFriend(String id, String name,String email, Date dob){
+
+    public void addAFriend(String name,String email, Date dob){
         Friend newFriend = new Friend(id,name,email,dob);
         if(!friends.contains(newFriend))
             friends.add(newFriend);
+        friendsID++;
     }
 
-    //Adding a new friend via friend returned from dummylocationservices
-    public void addAFriend(String id, String name, Double lat, Double lng, Date time){
-        final Friend newFriend = new Friend(id, name, lat, lng, time);
-            if(!friends.contains(newFriend)) {
-                friends.add(newFriend);
-            }
-    }
     public void removeAFriend(String id){
         for(int i = 0; i < friends.size(); i++){
             if(friends.get(i).getId().equals(id)){
@@ -100,9 +96,11 @@ public class CurrentUser extends Friend implements FriendInterface {
         scheduleNotification(newMeeting);
         meetingID++;
     }
+
     public void createMeetings(List<Meeting> theMeetings){
         meetings = theMeetings;
     }
+
     public void createFriends(List<Friend> theFriends){
         friends = theFriends;
     }
@@ -134,6 +132,8 @@ public class CurrentUser extends Friend implements FriendInterface {
 
         friends = db.getAllFriends();
         meetings = db.getAllMeetings();
+        meetingID = friends.size();
+        friendsID = friends.size();
 
         for(int i = 0; i < matched.size(); i++){
             Friend friend = friends.get(i);

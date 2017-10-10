@@ -93,7 +93,7 @@ public class addfriend_Fragment extends Fragment implements
         } catch (ParseException e) {
             e.printStackTrace();
         }
-        model.getCurrentUser().addAFriend("001",friends.get(position).getName(),
+        model.getCurrentUser().addAFriend(friends.get(position).getName(),
                 friends.get(position).getEmail(), dob);
 
         Toast.makeText(getActivity(), "You just added: " + friends.get(position).getName(),
